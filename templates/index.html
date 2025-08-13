@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DB AutoOrgChart</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .container {
+            width: 100vw;
+            height: 100vh;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #0078d4 0%, #0b559f 100%);
+            color: white;
+            padding: 20px 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 5px;
+            font-weight: 300;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 0.95em;
+        }
+
+        .search-bar {
+            padding: 15px 30px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .search-wrapper {
+            position: relative;
+            max-width: 600px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 15px 10px 40px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #0078d4;
+            box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #888;
+        }
+
+        .main-content {
+            display: flex;
+            min-height: calc(100vh - 140px);
+        }
+
+        .org-chart-container {
+            flex: 1;
+            padding: 20px;
+            overflow: auto;
+            position: relative;
+            min-width: 0;
+        }
+
+        #orgChart {
+            width: 100%;
+            height: 100%;
+            min-height: calc(100vh - 180px);
+        }
+
+        .controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+            display: flex;
+            gap: 10px;
+        }
+
+        .control-btn {
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: #f5f5f5;
+            border-color: #0078d4;
+        }
+
+        .employee-detail {
+            width: 350px;
+            background: #fafafa;
+            border-left: 1px solid #e0e0e0;
+            padding: 0;
+            display: none;
+            flex-direction: column;
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+
+        .employee-detail.active {
+            display: flex;
+        }
+
+        .controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 50;
+            display: flex;
+            gap: 10px;
+        }
+        @media (max-width: 768px) {
+            .search-bar {
+                padding: 10px 15px;
+            }
+
+            .employee-detail {
+                position: fixed;
+                right: 0;
+                top: 0;
+                height: 100vh;
+                width: 300px;
+                z-index: 1000;
+                box-shadow: -5px 0 15px rgba(0,0,0,0.2);
+                transform: translateX(100%);
+            }
+
+            .employee-detail.active {
+                transform: translateX(0);
+            }
+
+            .org-chart-container {
+                padding: 10px;
+            }
+
+            .controls {
+                top: 10px;
+                right: 10px;
+            }
+
+            .control-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+        }
+
+        .detail-header {
+            background: white;
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            position: relative;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .employee-avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #0078d4 0%, #0b559f 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: 500;
+            margin: 0 auto 15px;
+        }
+
+        .employee-name h2 {
+            color: #333;
+            font-size: 1.3em;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .employee-title {
+            color: #666;
+            font-size: 0.9em;
+            text-align: center;
+        }
+
+        .employee-info {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .info-item {
+            margin-bottom: 20px;
+        }
+
+        .info-label {
+            color: #888;
+            font-size: 11px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            color: #333;
+            font-size: 14px;
+        }
+
+        .info-value a {
+            color: #0078d4;
+            text-decoration: none;
+        }
+
+        .info-value a:hover {
+            text-decoration: underline;
+        }
+
+        .direct-reports {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .direct-reports h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .report-item {
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid #e8e8e8;
+        }
+
+        .report-item:hover {
+            background: #f8f8f8;
+            border-color: #0078d4;
+        }
+
+        .report-name {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 2px;
+        }
+
+        .report-title {
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* D3 Org Chart Styles */
+        .node {
+            cursor: pointer;
+        }
+
+        .node-rect {
+            rx: 4;
+            ry: 4;
+            transition: all 0.3s ease;
+        }
+
+        .node-rect:hover {
+            filter: brightness(0.95);
+            stroke-width: 3px !important;
+        }
+
+        .node-text {
+            font-size: 14px;
+            fill: #333;
+            font-weight: 600;
+        }
+
+        .node-name {
+            font-size: 14px;
+            fill: #333;
+            font-weight: bold;
+        }
+
+        .node-title {
+            font-size: 11px;
+            fill: #555;
+        }
+
+        .node-department {
+            font-size: 11px;
+            fill: #666;
+            font-style: italic;
+        }
+
+        .link {
+            fill: none;
+            stroke: #999;
+            stroke-width: 2px;
+        }
+
+        .expand-btn {
+            fill: #0078d4;
+            cursor: pointer;
+        }
+
+        .expand-btn:hover {
+            fill: #0b559f;
+        }
+
+        .expand-text {
+            fill: white;
+            font-size: 14px;
+            font-weight: bold;
+            pointer-events: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #0078d4;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .search-results.active {
+            display: block;
+        }
+
+        .search-result-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .search-result-item:hover {
+            background: #f8f8f8;
+        }
+
+        .search-result-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .search-result-title {
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>DB AutoOrgChart</h1>
+            <p>Updates itself each evening @ 8PM</p>
+        </div>
+        
+        <div class="search-bar">
+            <div class="search-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" id="searchInput" placeholder="Search for employees by name, title, or department...">
+                <div class="search-results" id="searchResults"></div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="org-chart-container" id="orgChart">
+                <div class="controls">
+                    <button class="control-btn" onclick="zoomIn()">+</button>
+                    <button class="control-btn" onclick="zoomOut()">-</button>
+                    <button class="control-btn" onclick="resetZoom()">Reset Zoom</button>
+                    <button class="control-btn" onclick="printChart()">Print</button>
+                </div>
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading organization chart...</p>
+                </div>
+            </div>
+            
+            <div class="employee-detail" id="employeeDetail">
+                <div class="detail-header">
+                    <button class="close-btn" onclick="closeEmployeeDetail()">×</button>
+                    <div id="employeeDetailContent"></div>
+                </div>
+                <div class="employee-info" id="employeeInfo"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentData = null;
+        let allEmployees = [];
+        let root = null;
+        let svg = null;
+        let g = null;
+        let zoom = null;
+
+        const API_BASE_URL = window.location.origin;
+        const nodeWidth = 220;
+        const nodeHeight = 80;
+        const levelHeight = 120;
+        const userIconUrl = window.location.origin + '/static/usericon.png';
+
+        async function init() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/employees`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                currentData = await response.json();
+                
+                if (currentData) {
+                    allEmployees = flattenTree(currentData);
+                    renderOrgChart(currentData);
+                } else {
+                    throw new Error('No data received from server');
+                }
+            } catch (error) {
+                console.error('Error loading employee data:', error);
+                document.getElementById('orgChart').innerHTML = '<div class="loading">Error loading data. Please refresh the page.</div>';
+            }
+        }
+
+        function flattenTree(node, list = []) {
+            if (!node) return list;
+            list.push(node);
+            if (node.children && Array.isArray(node.children)) {
+                node.children.forEach(child => flattenTree(child, list));
+            }
+            return list;
+        }
+
+        // Render the organization chart using D3
+        function renderOrgChart(data) {
+            if (!data) {
+                console.error('No data to render');
+                return;
+            }
+
+            const container = document.getElementById('orgChart');
+            container.querySelector('.loading').style.display = 'none';
+
+            const width = container.clientWidth;
+            const height = container.clientHeight || 800;
+
+            svg = d3.select('#orgChart')
+                .append('svg')
+                .attr('width', width)
+                .attr('height', height);
+
+            // zoom behavior
+            zoom = d3.zoom()
+                .scaleExtent([0.1, 3])
+                .on('zoom', (event) => {
+                    g.attr('transform', event.transform);
+                });
+
+            svg.call(zoom);
+
+            g = svg.append('g')
+                .attr('transform', `translate(${width/2}, 50)`);
+
+            root = d3.hierarchy(data);
+            
+            root.x0 = 0;
+            root.y0 = 0;
+            
+            const treeLayout = d3.tree()
+                .nodeSize([nodeWidth + 20, levelHeight]);
+
+            // Initially collapse all except first two levels
+            root.each(d => {
+                if (d.depth >= 1 && d.children) {
+                    d._children = d.children;
+                    d.children = null;
+                }
+            });
+
+            update(root);
+        }
+
+        function update(source) {
+            const treeLayout = d3.tree()
+                .nodeSize([nodeWidth + 20, levelHeight]);
+
+            const treeData = treeLayout(root);
+            const nodes = treeData.descendants();
+            const links = treeData.links();
+
+            const link = g.selectAll('.link')
+                .data(links, d => d.target.data.id);
+
+            const linkEnter = link.enter()
+                .insert('path', 'g')
+                .attr('class', 'link')
+                .attr('d', d => {
+                    const o = {x: source.x0 || source.x, y: source.y0 || source.y};
+                    return diagonal(o, o);
+                });
+
+            link.merge(linkEnter)
+                .transition()
+                .duration(500)
+                .attr('d', d => diagonal(d.source, d.target));
+
+            link.exit()
+                .transition()
+                .duration(500)
+                .attr('d', d => {
+                    const o = {x: source.x, y: source.y};
+                    return diagonal(o, o);
+                })
+                .remove();
+
+            const node = g.selectAll('.node')
+                .data(nodes, d => d.data.id);
+
+            const nodeEnter = node.enter()
+                .append('g')
+                .attr('class', d => d.depth === 0 ? 'node ceo' : 'node')
+                .attr('transform', d => `translate(${source.x0 || source.x}, ${source.y0 || source.y})`)
+                .on('click', (event, d) => {
+                    event.stopPropagation();
+                    showEmployeeDetail(d.data);
+                });
+
+            nodeEnter.append('rect')
+                .attr('class', 'node-rect')
+                .attr('x', -nodeWidth/2)
+                .attr('y', -nodeHeight/2)
+                .attr('width', nodeWidth)
+                .attr('height', nodeHeight)
+                .style('fill', d => {
+                    // Apply colors based on depth level
+                    switch(d.depth) {
+                        case 0: return '#90EE90';
+                        case 1: return '#FFFFE0';
+                        case 2: return '#E0F2FF';
+                        case 3: return '#FFE4E1';
+                        case 4: return '#E8DFF5';
+                        case 5: return '#FFEAA7';
+                        default: return '#F0F0F0'; 
+                    }
+                })
+                .style('stroke', d => {
+                    // Apply border colors based on depth level
+                    switch(d.depth) {
+                        case 0: return '#228B22';
+                        case 1: return '#FFD700';
+                        case 2: return '#4682B4';
+                        case 3: return '#FF6B6B';
+                        case 4: return '#9370DB';
+                        case 5: return '#FDCB6E';
+                        default: return '#999';
+                    }
+                })
+                .style('stroke-width', '2px');
+
+            // Profile image
+            nodeEnter.append('image')
+                .attr('xlink:href', userIconUrl)
+                .attr('x', -nodeWidth/2 + 10)
+                .attr('y', -nodeHeight/2 + (nodeHeight - 50) / 2)
+                .attr('width', 50)
+                .attr('height', 50)
+                .attr('clip-path', 'circle(25px at 25px 25px)')
+                .attr('preserveAspectRatio', 'xMidYMid slice');
+
+            // Node text - Name
+            nodeEnter.append('text')
+                .attr('class', 'node-text')
+                .attr('x', nodeWidth/2 - 10)
+                .attr('y', -20)
+                .attr('text-anchor', 'end')
+                .style('font-weight', 'bold')
+                .text(d => {
+                    const name = d.data.name;
+                    return name.length > 22 ? name.substring(0, 22) + '...' : name;
+                });
+
+            // Node text - Title
+            nodeEnter.append('text')
+                .attr('class', 'node-title')
+                .attr('x', nodeWidth/2 - 10)
+                .attr('y', -5)
+                .attr('text-anchor', 'end')
+                .text(d => {
+                    const title = d.data.title;
+                    return title.length > 28 ? title.substring(0, 28) + '...' : title;
+                });
+
+            // Node text - Department
+            nodeEnter.append('text')
+                .attr('class', 'node-department')
+                .attr('x', nodeWidth/2 - 10)
+                .attr('y', 25)
+                .attr('text-anchor', 'end')
+                .text(d => {
+                    const dept = d.data.department || 'Not specified';
+                    return dept.length > 28 ? dept.substring(0, 28) + '...' : dept;
+                });
+
+            // Expand/Collapse button
+            const expandBtn = nodeEnter.append('g')
+                .attr('class', 'expand-group')
+                .style('display', d => (d._children?.length || d.children?.length) ? 'block' : 'none')
+                .on('click', (event, d) => {
+                    event.stopPropagation();
+                    toggle(d);
+                });
+
+            expandBtn.append('circle')
+                .attr('class', 'expand-btn')
+                .attr('cy', nodeHeight/2 + 10)
+                .attr('r', 10);
+
+            expandBtn.append('text')
+                .attr('class', 'expand-text')
+                .attr('y', nodeHeight/2 + 15)
+                .attr('text-anchor', 'middle')
+                .text(d => d._children?.length ? '+' : '-');
+
+            const nodeUpdate = node.merge(nodeEnter)
+                .transition()
+                .duration(500)
+                .attr('transform', d => `translate(${d.x}, ${d.y})`);
+
+            nodeUpdate.select('.expand-text')
+                .text(d => d._children?.length ? '+' : '-');
+
+            nodeUpdate.select('.expand-group')
+                .style('display', d => (d._children?.length || d.children?.length) ? 'block' : 'none');
+
+            node.exit()
+                .transition()
+                .duration(500)
+                .attr('transform', d => `translate(${source.x}, ${source.y})`)
+                .remove();
+
+            nodes.forEach(d => {
+                d.x0 = d.x;
+                d.y0 = d.y;
+            });
+        }
+
+        function diagonal(s, d) {
+            const midY = (s.y + d.y) / 2;
+            
+            return `M ${s.x} ${s.y + nodeHeight/2}
+                    L ${s.x} ${midY}
+                    L ${d.x} ${midY}
+                    L ${d.x} ${d.y - nodeHeight/2}`;
+        }
+
+        function toggle(d) {
+            if (d.children) {
+                // Collapsing - store all children
+                d._children = d.children;
+                d.children = null;
+            } else {
+                // Expanding - restore children but ensure deeper levels remain collapsed
+                d.children = d._children;
+                d._children = null;
+                
+                // Ensure all newly visible children at depth >= 3 are collapsed
+                if (d.children) {
+                    d.children.forEach(child => {
+                        if (child.depth >= 2 && child.children) {
+                            child._children = child.children;
+                            child.children = null;
+                        }
+                    });
+                }
+            }
+            update(d);
+        }
+
+        function expandAll() {
+            root.each(d => {
+                if (d._children) {
+                    d.children = d._children;
+                    d._children = null;
+                }
+            });
+            update(root);
+        }
+
+        function collapseAll() {
+            root.each(d => {
+                if (d.depth >= 1 && d.children) {
+                    d._children = d.children;
+                    d.children = null;
+                }
+            });
+            update(root);
+        }
+
+        function resetZoom() {
+            const container = document.getElementById('orgChart');
+            const width = container.clientWidth;
+            
+            svg.transition()
+                .duration(750)
+                .call(zoom.transform, d3.zoomIdentity.translate(width/2, 50));
+        }
+
+        function zoomIn() {
+            svg.transition().call(zoom.scaleBy, 1.2);
+        }
+
+        function zoomOut() {
+            svg.transition().call(zoom.scaleBy, 0.8);
+        }
+
+        function getBounds(printRoot) {
+            const treeLayout = d3.tree().nodeSize([nodeWidth + 20, levelHeight]);
+            const treeData = treeLayout(printRoot);
+            const nodes = treeData.descendants();
+            const minX = d3.min(nodes, d => d.x) - nodeWidth / 2 - 20;
+            const maxX = d3.max(nodes, d => d.x) + nodeWidth / 2 + 20;
+            const minY = d3.min(nodes, d => d.y) - nodeHeight / 2 - 20;
+            const maxY = d3.max(nodes, d => d.y) + nodeHeight / 2 + 50;
+            return { minX, maxX, minY, maxY };
+        }
+
+        function buildExpandedData(node) {
+            const copy = {};
+            Object.keys(node.data).forEach(key => {
+                if (key !== 'children') {
+                    copy[key] = node.data[key];
+                }
+            });
+            if (node.children) {
+                copy.children = node.children.map(child => buildExpandedData(child));
+            }
+            copy.hasCollapsedChildren = !!(node._children && node._children.length);
+            return copy;
+        }
+
+        function printChart() {
+            const expandedData = buildExpandedData(root);
+            const printRoot = d3.hierarchy(expandedData);
+            const bounds = getBounds(printRoot);
+            const viewWidth = bounds.maxX - bounds.minX;
+            const viewHeight = bounds.maxY - bounds.minY;
+
+            const pageWidth = 1123; // A4 landscape at ~96dpi
+            const pageHeight = 796;
+
+            let printWin = window.open('', '_blank');
+            printWin.document.write(`<html><head><title>Org Chart Print</title>`);
+            printWin.document.write(`<style>${document.querySelector('style').innerHTML}`);
+            printWin.document.write(`@page { size: landscape; margin: 0.5cm; }`);
+            printWin.document.write(`body { margin: 0; padding: 0; }`);
+            printWin.document.write(`</style></head><body>`);
+
+            const printSvg = printWin.document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            printSvg.setAttribute('width', pageWidth);
+            printSvg.setAttribute('height', pageHeight);
+            printSvg.setAttribute('viewBox', `${bounds.minX} ${bounds.minY} ${viewWidth} ${viewHeight}`);
+            printSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+            const printG = printWin.document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            printSvg.appendChild(printG);
+            printWin.document.body.appendChild(printSvg);
+
+            const d3PrintG = d3.select(printG);
+
+            const treeLayout = d3.tree().nodeSize([nodeWidth + 20, levelHeight]);
+            const treeData = treeLayout(printRoot);
+            const nodes = treeData.descendants();
+            const links = treeData.links();
+
+            d3PrintG.selectAll('.link')
+                .data(links)
+                .enter()
+                .append('path')
+                .attr('class', 'link')
+                .attr('d', d => diagonal(d.source, d.target));
+
+            const printNode = d3PrintG.selectAll('.node')
+                .data(nodes)
+                .enter()
+                .append('g')
+                .attr('class', 'node')
+                .attr('transform', d => `translate(${d.x}, ${d.y})`);
+
+            printNode.append('rect')
+                .attr('class', 'node-rect')
+                .attr('x', -nodeWidth/2)
+                .attr('y', -nodeHeight/2)
+                .attr('width', nodeWidth)
+                .attr('height', nodeHeight)
+                .style('fill', d => {
+                    switch(d.depth) {
+                        case 0: return '#90EE90';
+                        case 1: return '#FFFFE0';
+                        case 2: return '#E0F2FF';
+                        case 3: return '#FFE4E1';
+                        case 4: return '#E8DFF5';
+                        case 5: return '#FFEAA7';
+                        default: return '#F0F0F0'; 
+                    }
+                })
+                .style('stroke', d => {
+                    switch(d.depth) {
+                        case 0: return '#228B22';
+                        case 1: return '#FFD700';
+                        case 2: return '#4682B4';
+                        case 3: return '#FF6B6B';
+                        case 4: return '#9370DB';
+                        case 5: return '#FDCB6E';
+                        default: return '#999';
+                    }
+                })
+                .style('stroke-width', '2px');
+
+            printNode.append('image')
+                .attr('xlink:href', userIconUrl)
+                .attr('x', -nodeWidth/2 + 10)
+                .attr('y', -nodeHeight/2 + (nodeHeight - 50) / 2)
+                .attr('width', 50)
+                .attr('height', 50)
+                .attr('clip-path', 'circle(25px at 25px 25px)')
+                .attr('preserveAspectRatio', 'xMidYMid slice');
+
+            printNode.append('text')
+                .attr('class', 'node-text')
+                .attr('x', nodeWidth/2 - 10)
+                .attr('y', -20)
+                .attr('text-anchor', 'end')
+                .style('font-weight', 'bold')
+                .text(d => {
+                    const name = d.data.name;
+                    return name.length > 22 ? name.substring(0, 22) + '...' : name;
+                });
+
+            printNode.append('text')
+                .attr('class', 'node-title')
+                .attr('x', nodeWidth/2 - 10)
+                .attr('y', -5)
+                .attr('text-anchor', 'end')
+                .text(d => {
+                    const title = d.data.title;
+                    return title.length > 28 ? title.substring(0, 28) + '...' : title;
+                });
+
+            printNode.append('text')
+                .attr('class', 'node-department')
+                .attr('x', nodeWidth/2 - 10)
+                .attr('y', 25)
+                .attr('text-anchor', 'end')
+                .text(d => {
+                    const dept = d.data.department || 'Not specified';
+                    return dept.length > 28 ? dept.substring(0, 28) + '...' : dept;
+                });
+
+            const printExpandBtn = printNode.append('g')
+                .attr('class', 'expand-group')
+                .style('display', d => (d.data.hasCollapsedChildren || (d.children && d.children.length)) ? 'block' : 'none');
+
+            printExpandBtn.append('circle')
+                .attr('class', 'expand-btn')
+                .attr('cy', nodeHeight/2 + 10)
+                .attr('r', 10);
+
+            printExpandBtn.append('text')
+                .attr('class', 'expand-text')
+                .attr('y', nodeHeight/2 + 15)
+                .attr('text-anchor', 'middle')
+                .text(d => d.data.hasCollapsedChildren ? '+' : '-');
+
+            printWin.document.write('</body></html>');
+            printWin.document.close();
+            printWin.focus();
+            printWin.print();
+        }
+
+        // Show employee detail panel
+        function showEmployeeDetail(employee) {
+            const detailPanel = document.getElementById('employeeDetail');
+            const headerContent = document.getElementById('employeeDetailContent');
+            const infoContent = document.getElementById('employeeInfo');
+            
+            const initials = employee.name.split(' ')
+                .map(n => n[0])
+                .join('')
+                .substring(0, 2)
+                .toUpperCase();
+            
+            headerContent.innerHTML = `
+                <div class="employee-avatar">${initials}</div>
+                <div class="employee-name">
+                    <h2>${employee.name}</h2>
+                </div>
+                <div class="employee-title">${employee.title}</div>
+            `;
+            
+            let infoHTML = `
+                <div class="info-item">
+                    <div class="info-label">Department</div>
+                    <div class="info-value">${employee.department || 'Not specified'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Email</div>
+                    <div class="info-value">
+                        ${employee.email ? `<a href="mailto:${employee.email}">${employee.email}</a>` : 'Not available'}
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Phone</div>
+                    <div class="info-value">${employee.phone || 'Not available'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Location</div>
+                    <div class="info-value">${employee.location || 'Not specified'}</div>
+                </div>
+            `;
+            
+            const directReports = employee.children || [];
+            if (directReports.length > 0) {
+                infoHTML += `
+                    <div class="direct-reports">
+                        <h3>Direct Reports (${directReports.length})</h3>
+                        ${directReports.map(report => `
+                            <div class="report-item" onclick='showEmployeeDetail(${JSON.stringify(report).replace(/'/g, "\\'")})'>
+                                <div class="report-name">${report.name}</div>
+                                <div class="report-title">${report.title}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            infoContent.innerHTML = infoHTML;
+            detailPanel.classList.add('active');
+        }
+
+        function closeEmployeeDetail() {
+            document.getElementById('employeeDetail').classList.remove('active');
+        }
+
+        let searchTimeout;
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
+
+        searchInput.addEventListener('input', function(e) {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
+            
+            if (query.length < 2) {
+                searchResults.classList.remove('active');
+                return;
+            }
+            
+            searchTimeout = setTimeout(() => {
+                performSearch(query);
+            }, 300);
+        });
+
+        searchInput.addEventListener('focus', function(e) {
+            if (e.target.value.length >= 2) {
+                performSearch(e.target.value);
+            }
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.search-wrapper')) {
+                searchResults.classList.remove('active');
+            }
+        });
+
+        async function performSearch(query) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/search?q=${encodeURIComponent(query)}`);
+                const results = await response.json();
+                
+                if (results.length > 0) {
+                    displaySearchResults(results);
+                } else {
+                    searchResults.innerHTML = '<div class="search-result-item">No results found</div>';
+                    searchResults.classList.add('active');
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+            }
+        }
+
+        function displaySearchResults(results) {
+            searchResults.innerHTML = results.map(emp => `
+                <div class="search-result-item" onclick="selectSearchResult('${emp.id}')">
+                    <div class="search-result-name">${emp.name}</div>
+                    <div class="search-result-title">${emp.title}</div>
+                </div>
+            `).join('');
+            searchResults.classList.add('active');
+        }
+
+        function selectSearchResult(employeeId) {
+            const employee = allEmployees.find(emp => emp.id === employeeId);
+            if (employee) {
+                showEmployeeDetail(employee);
+                searchResults.classList.remove('active');
+                searchInput.value = '';
+                
+                expandToEmployee(employeeId);
+            }
+        }
+
+        function expandToEmployee(employeeId) {
+            const path = [];
+            
+            function findPath(node, targetId, currentPath) {
+                currentPath.push(node);
+                
+                if (node.data.id === targetId) {
+                    path.push(...currentPath);
+                    return true;
+                }
+                
+                if (node.children || node._children) {
+                    const children = node.children || node._children;
+                    for (let child of children) {
+                        if (findPath(child, targetId, [...currentPath])) {
+                            return true;
+                        }
+                    }
+                }
+                
+                return false;
+            }
+            
+            findPath(root, employeeId, []);
+            
+            path.forEach(node => {
+                if (node._children) {
+                    node.children = node._children;
+                    node._children = null;
+                }
+            });
+            
+            update(root);
+            
+            const targetNode = path[path.length - 1];
+            if (targetNode) {
+                const container = document.getElementById('orgChart');
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+                
+                svg.transition()
+                    .duration(750)
+                    .call(zoom.transform, 
+                        d3.zoomIdentity
+                            .translate(width/2, height/2)
+                            .scale(1)
+                            .translate(-targetNode.x, -targetNode.y)
+                    );
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+
+        // Close detail panel with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeEmployeeDetail();
+            }
+        });
+    </script>
+</body>
+</html>
