@@ -27,6 +27,9 @@ TBC
 
 <img width="709" height="363" alt="image" src="https://github.com/user-attachments/assets/57d51dd5-c8a3-4f4c-89ac-ba2ad1d73747" />
 
+<img width="942" height="682" alt="image" src="https://github.com/user-attachments/assets/6b3066bc-0376-462e-bdee-7c6f67834cbb" />
+
+
 
 ## Deploy to Azure as an App Service
 TBC
