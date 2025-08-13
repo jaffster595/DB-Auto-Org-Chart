@@ -8,7 +8,6 @@ from app import app, start_scheduler
 import logging
 import sys
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -16,10 +15,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 if __name__ == '__main__':
-    # Start the scheduler
     start_scheduler()
     
-    # Server configuration
     host = '0.0.0.0'
     port = 5000
     threads = 6  # Number of threads to handle requests
@@ -29,7 +26,6 @@ if __name__ == '__main__':
     logger.info("Press Ctrl+C to stop the server")
     
     try:
-        # Start Waitress server
         serve(
             app,
             host=host,

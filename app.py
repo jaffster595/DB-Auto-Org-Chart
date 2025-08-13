@@ -12,7 +12,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -30,7 +29,6 @@ TENANT_ID = os.environ.get('AZURE_TENANT_ID')
 CLIENT_ID = os.environ.get('AZURE_CLIENT_ID')
 CLIENT_SECRET = os.environ.get('AZURE_CLIENT_SECRET')
 
-# Validate required environment variables
 if not all([TENANT_ID, CLIENT_ID, CLIENT_SECRET]):
     logger.warning("Missing Azure AD credentials in environment variables!")
     logger.warning("AZURE_TENANT_ID: " + ("Set" if TENANT_ID else "Not set"))
@@ -38,7 +36,6 @@ if not all([TENANT_ID, CLIENT_ID, CLIENT_SECRET]):
     logger.warning("AZURE_CLIENT_SECRET: " + ("Set" if CLIENT_SECRET else "Not set"))
     logger.warning("Please check your .env file exists and contains the correct values")
 
-# Set this to the email or ID of your CEO/top-level person
 TOP_LEVEL_USER_EMAIL = os.environ.get('TOP_LEVEL_USER_EMAIL')
 TOP_LEVEL_USER_ID = os.environ.get('TOP_LEVEL_USER_ID')
 
@@ -198,7 +195,7 @@ def update_employee_data():
 def schedule_updates():
     global scheduler_running
     
-    # Run initial update on startup if enabled
+    # Run initial update on startup if enabled. Comment the 3 below lines out if you want to turn this off.
     if os.environ.get('RUN_INITIAL_UPDATE', 'true').lower() == 'true':
         logger.info(f"[{datetime.now()}] Running initial employee data update on startup...")
         update_employee_data()
@@ -225,14 +222,12 @@ def stop_scheduler():
         scheduler_running = False
         logger.info("Scheduler stopped")
 
-# Read the HTML template from the file
 def get_index_html():
-    # Try multiple locations for the template
     possible_paths = [
-        'templates/index.html',  # Standard Flask location
-        'index.html',            # Root directory
-        os.path.join(os.path.dirname(__file__), 'templates', 'index.html'),  # Absolute path
-        os.path.join(os.path.dirname(__file__), 'index.html')  # Absolute path in root
+        'templates/index.html',
+        'index.html',
+        os.path.join(os.path.dirname(__file__), 'templates', 'index.html'),
+        os.path.join(os.path.dirname(__file__), 'index.html')
     ]
     
     for path in possible_paths:
@@ -370,11 +365,9 @@ def debug_data():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Initialize scheduler when module is imported (for Gunicorn)
 if __name__ != '__main__':
     start_scheduler()
 
-# For development server
 if __name__ == '__main__':
     start_scheduler()
     try:
