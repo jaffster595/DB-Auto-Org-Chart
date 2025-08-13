@@ -25,6 +25,9 @@ It makes one API call per day at 8PM and saves the acquired data within employee
 ## Local installation
 TBC
 
+<img width="709" height="363" alt="image" src="https://github.com/user-attachments/assets/57d51dd5-c8a3-4f4c-89ac-ba2ad1d73747" />
+
+
 ## Deploy to Azure as an App Service
 TBC
 
