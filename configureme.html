@@ -548,15 +548,17 @@
             }
 
             if (settings.nodeColors) {
-                Object.keys(settings.nodeColors).forEach(level => {
-                    const colorInput = document.getElementById(`${level}Color`);
-                    const hexInput = document.getElementById(`${level}ColorHex`);
-                    if (colorInput && hexInput) {
-                        colorInput.value = settings.nodeColors[level];
-                        hexInput.value = settings.nodeColors[level];
+                ['level0', 'level1', 'level2', 'level3', 'level4', 'level5'].forEach(level => {
+                    if (settings.nodeColors[level]) {
+                        const colorInput = document.getElementById(`${level}Color`);
+                        const hexInput = document.getElementById(`${level}ColorHex`);
+                        if (colorInput && hexInput) {
+                            colorInput.value = settings.nodeColors[level];
+                            hexInput.value = settings.nodeColors[level];
                     }
-                });
-            }
+                 }
+            });
+        }
 
             if (settings.autoUpdateEnabled !== undefined) {
                 document.getElementById('autoUpdateEnabled').checked = settings.autoUpdateEnabled;
