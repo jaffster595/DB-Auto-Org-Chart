@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration - DB AutoOrgChart</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #0078d4 0%, #0b559f 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .config-section {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .config-section h2 {
+            color: #333;
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .config-group {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #fafafa;
+            border-radius: 6px;
+            border: 1px solid #e8e8e8;
+        }
+
+        .config-item {
+            margin-bottom: 20px;
+        }
+
+        .config-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .config-label {
+            display: block;
+            color: #555;
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .config-description {
+            color: #888;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        .config-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        input[type="text"],
+        input[type="color"],
+        input[type="number"],
+        input[type="time"],
+        select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="time"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #0078d4;
+            box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.1);
+        }
+
+        input[type="color"] {
+            width: 60px;
+            height: 36px;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-upload-label {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #0078d4;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .file-upload-label:hover {
+            background: #0b559f;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: #0078d4;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0b559f;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .current-logo {
+            display: inline-block;
+            margin-left: 15px;
+        }
+
+        .current-logo img {
+            height: 40px;
+            max-width: 200px;
+            object-fit: contain;
+            vertical-align: middle;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 4px;
+            background: white;
+        }
+
+        .preview-section {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+        }
+
+        .preview-header {
+            padding: 15px;
+            color: white;
+            border-radius: 4px;
+            transition: background 0.3s ease;
+        }
+
+        .status-message {
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .status-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .status-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .nav-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #0078d4;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: #0b559f;
+            text-decoration: underline;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #0078d4;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .config-controls {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="nav-link">← Back to Org Chart</a>
+        
+        <div class="header">
+            <h1>Configuration Settings</h1>
+            <p>Customize your organization chart appearance and behavior</p>
+        </div>
+
+        <div class="config-section">
+            <h2>🎨 Appearance Settings</h2>
+            
+            <div class="config-group">
+                <div class="config-item">
+                    <label class="config-label">Header Bar Color</label>
+                    <div class="config-description">Choose the color for the top header bar</div>
+                    <div class="config-controls">
+                        <input type="color" id="headerColor" value="#0078d4">
+                        <input type="text" id="headerColorHex" placeholder="#0078d4" maxlength="7" style="width: 100px;">
+                        <button class="btn btn-secondary" onclick="resetHeaderColor()">Reset to Default</button>
+                    </div>
+                    <div class="preview-section">
+                        <div class="preview-header" id="headerPreview" style="background: linear-gradient(135deg, #0078d4 0%, #0b559f 100%);">
+                            Preview Header
+                        </div>
+                    </div>
+                </div>
+
+                <div class="config-item">
+                    <label class="config-label">Logo Image</label>
+                    <div class="config-description">Upload a custom logo (recommended: max height 40px, PNG or JPG)</div>
+                    <div class="config-controls">
+                        <label for="logoUpload" class="file-upload-label">Choose Logo</label>
+                        <input type="file" id="logoUpload" accept="image/*">
+                        <span class="current-logo">
+                            <img id="currentLogo" src="/static/icon.png" alt="Current Logo">
+                        </span>
+                        <button class="btn btn-secondary" onclick="resetLogo()">Reset to Default</button>
+                    </div>
+                </div>
+
+                <div class="config-item">
+                    <label class="config-label">Node Colors by Level</label>
+                    <div class="config-description">Customize colors for each hierarchy level</div>
+                    <div style="display: grid; gap: 10px; margin-top: 10px;">
+                        <div class="config-controls">
+                            <span style="width: 80px; display: inline-block;">CEO:</span>
+                            <input type="color" id="level0Color" value="#90EE90">
+                            <input type="text" id="level0ColorHex" placeholder="#90EE90" maxlength="7" style="width: 100px;">
+                        </div>
+                        <div class="config-controls">
+                            <span style="width: 80px; display: inline-block;">Level 1:</span>
+                            <input type="color" id="level1Color" value="#FFFFE0">
+                            <input type="text" id="level1ColorHex" placeholder="#FFFFE0" maxlength="7" style="width: 100px;">
+                        </div>
+                        <div class="config-controls">
+                            <span style="width: 80px; display: inline-block;">Level 2:</span>
+                            <input type="color" id="level2Color" value="#E0F2FF">
+                            <input type="text" id="level2ColorHex" placeholder="#E0F2FF" maxlength="7" style="width: 100px;">
+                        </div>
+                        <button class="btn btn-secondary" onclick="resetNodeColors()">Reset All Node Colors</button>
+                    </div>
+                </div>
+            </div>
+
+            <h2 style="margin-top: 40px;">⚙️ Behavior Settings</h2>
+            
+            <div class="config-group">
+                <div class="config-item">
+                    <label class="config-label">Auto-Update Schedule</label>
+                    <div class="config-description">Set the time for daily automatic data updates</div>
+                    <div class="config-controls">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="autoUpdateEnabled" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <span style="margin-left: 10px;">Enable Auto-Update</span>
+                        <input type="time" id="updateTime" value="20:00">
+                        <button class="btn btn-secondary" onclick="resetUpdateTime()">Reset to Default</button>
+                    </div>
+                </div>
+
+                <div class="config-item">
+                    <label class="config-label">Initial Collapse Level</label>
+                    <div class="config-description">How many levels to show expanded on initial load</div>
+                    <div class="config-controls">
+                        <select id="collapseLevel">
+                            <option value="1">Show CEO only</option>
+                            <option value="2" selected>Show 2 levels</option>
+                            <option value="3">Show 3 levels</option>
+                            <option value="4">Show 4 levels</option>
+                            <option value="all">Show all levels</option>
+                        </select>
+                        <button class="btn btn-secondary" onclick="resetCollapseLevel()">Reset to Default</button>
+                    </div>
+                </div>
+
+                <div class="config-item">
+                    <label class="config-label">Search Settings</label>
+                    <div class="config-description">Configure search behavior</div>
+                    <div class="config-controls">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="searchAutoExpand" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <span>Auto-expand to search results</span>
+                    </div>
+                    <div class="config-controls" style="margin-top: 10px;">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="searchHighlight" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <span>Highlight search results</span>
+                    </div>
+                </div>
+
+                <div class="config-item">
+                    <label class="config-label">Display Options</label>
+                    <div class="config-description">Customize what information is shown</div>
+                    <div class="config-controls">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="showDepartments" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <span>Show department names</span>
+                    </div>
+                    <div class="config-controls" style="margin-top: 10px;">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="showEmployeeCount" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <span>Show employee count badges</span>
+                    </div>
+                    <div class="config-controls" style="margin-top: 10px;">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="showProfileImages" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <span>Show profile images</span>
+                    </div>
+                </div>
+
+                <div class="config-item">
+                    <label class="config-label">Print Options</label>
+                    <div class="config-description">Configure print layout settings</div>
+                    <div class="config-controls">
+                        <select id="printOrientation">
+                            <option value="landscape" selected>Landscape</option>
+                            <option value="portrait">Portrait</option>
+                        </select>
+                        <select id="printSize" style="margin-left: 10px;">
+                            <option value="a4" selected>A4</option>
+                            <option value="letter">Letter</option>
+                            <option value="a3">A3</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <h2 style="margin-top: 40px;">📊 Data Management</h2>
+            
+            <div class="config-group">
+                <div class="config-item">
+                    <label class="config-label">Manual Data Update</label>
+                    <div class="config-description">Trigger an immediate update of employee data from Azure AD</div>
+                    <div class="config-controls">
+                        <button class="btn btn-primary" onclick="triggerUpdate()">Update Now</button>
+                        <span id="updateStatus" style="margin-left: 15px; color: #666;"></span>
+                    </div>
+                </div>
+
+                <div class="config-item">
+                    <label class="config-label">Top-Level User Override</label>
+                    <div class="config-description">Specify a user to be at the top of the hierarchy (by email)</div>
+                    <div class="config-controls">
+                        <input type="text" id="topUserEmail" placeholder="ceo@company.com" style="width: 250px;">
+                        <button class="btn btn-secondary" onclick="resetTopUser()">Reset to Auto-Detect</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-success" onclick="saveAllSettings()">Save All Settings</button>
+                <button class="btn btn-danger" onclick="resetAllSettings()">Reset Everything to Defaults</button>
+            </div>
+
+            <div id="statusMessage" class="status-message"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.origin;
+        let currentSettings = {};
+
+        // Load current settings on page load
+        async function loadSettings() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/settings`);
+                if (response.ok) {
+                    currentSettings = await response.json();
+                    applySettings(currentSettings);
+                }
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
+
+        function applySettings(settings) {
+            if (settings.headerColor) {
+                document.getElementById('headerColor').value = settings.headerColor;
+                document.getElementById('headerColorHex').value = settings.headerColor;
+                updateHeaderPreview(settings.headerColor);
+            }
+
+            if (settings.logoPath) {
+                document.getElementById('currentLogo').src = settings.logoPath;
+            }
+
+            if (settings.nodeColors) {
+                Object.keys(settings.nodeColors).forEach(level => {
+                    const colorInput = document.getElementById(`${level}Color`);
+                    const hexInput = document.getElementById(`${level}ColorHex`);
+                    if (colorInput && hexInput) {
+                        colorInput.value = settings.nodeColors[level];
+                        hexInput.value = settings.nodeColors[level];
+                    }
+                });
+            }
+
+            if (settings.autoUpdateEnabled !== undefined) {
+                document.getElementById('autoUpdateEnabled').checked = settings.autoUpdateEnabled;
+            }
+
+            if (settings.updateTime) {
+                document.getElementById('updateTime').value = settings.updateTime;
+            }
+
+            if (settings.collapseLevel) {
+                document.getElementById('collapseLevel').value = settings.collapseLevel;
+            }
+
+            if (settings.searchAutoExpand !== undefined) {
+                document.getElementById('searchAutoExpand').checked = settings.searchAutoExpand;
+            }
+
+            if (settings.searchHighlight !== undefined) {
+                document.getElementById('searchHighlight').checked = settings.searchHighlight;
+            }
+
+            if (settings.showDepartments !== undefined) {
+                document.getElementById('showDepartments').checked = settings.showDepartments;
+            }
+
+            if (settings.showEmployeeCount !== undefined) {
+                document.getElementById('showEmployeeCount').checked = settings.showEmployeeCount;
+            }
+
+            if (settings.showProfileImages !== undefined) {
+                document.getElementById('showProfileImages').checked = settings.showProfileImages;
+            }
+
+            if (settings.printOrientation) {
+                document.getElementById('printOrientation').value = settings.printOrientation;
+            }
+
+            if (settings.printSize) {
+                document.getElementById('printSize').value = settings.printSize;
+            }
+
+            if (settings.topUserEmail) {
+                document.getElementById('topUserEmail').value = settings.topUserEmail;
+            }
+        }
+
+        // Color picker synchronization
+        document.getElementById('headerColor').addEventListener('input', function(e) {
+            document.getElementById('headerColorHex').value = e.target.value;
+            updateHeaderPreview(e.target.value);
+        });
+
+        document.getElementById('headerColorHex').addEventListener('input', function(e) {
+            if (e.target.value.match(/^#[0-9A-Fa-f]{6}$/)) {
+                document.getElementById('headerColor').value = e.target.value;
+                updateHeaderPreview(e.target.value);
+            }
+        });
+
+        // Sync level color inputs
+        ['level0', 'level1', 'level2'].forEach(level => {
+            const colorInput = document.getElementById(`${level}Color`);
+            const hexInput = document.getElementById(`${level}ColorHex`);
+            
+            colorInput.addEventListener('input', function(e) {
+                hexInput.value = e.target.value;
+            });
+            
+            hexInput.addEventListener('input', function(e) {
+                if (e.target.value.match(/^#[0-9A-Fa-f]{6}$/)) {
+                    colorInput.value = e.target.value;
+                }
+            });
+        });
+
+        function updateHeaderPreview(color) {
+            const darker = adjustColor(color, -30);
+            document.getElementById('headerPreview').style.background = 
+                `linear-gradient(135deg, ${color} 0%, ${darker} 100%)`;
+        }
+
+        function adjustColor(color, amount) {
+            const num = parseInt(color.replace('#', ''), 16);
+            const r = Math.max(0, Math.min(255, (num >> 16) + amount));
+            const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amount));
+            const b = Math.max(0, Math.min(255, (num & 0x0000FF) + amount));
+            return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+        }
+
+        // Logo upload handling
+        document.getElementById('logoUpload').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const formData = new FormData();
+                formData.append('logo', file);
+                
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/upload-logo`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        document.getElementById('currentLogo').src = result.path + '?t=' + Date.now();
+                        showStatus('Logo uploaded successfully!', 'success');
+                    } else {
+                        showStatus('Error uploading logo', 'error');
+                    }
+                } catch (error) {
+                    showStatus('Error uploading logo', 'error');
+                }
+            }
+        });
+
+        // Reset functions
+        function resetHeaderColor() {
+            document.getElementById('headerColor').value = '#0078d4';
+            document.getElementById('headerColorHex').value = '#0078d4';
+            updateHeaderPreview('#0078d4');
+        }
+
+        function resetLogo() {
+            document.getElementById('currentLogo').src = '/static/icon.png?t=' + Date.now();
+            fetch(`${API_BASE_URL}/api/reset-logo`, { method: 'POST' });
+        }
+
+        function resetNodeColors() {
+            const defaults = {
+                'level0': '#90EE90',
+                'level1': '#FFFFE0',
+                'level2': '#E0F2FF'
+            };
+            
+            Object.keys(defaults).forEach(level => {
+                document.getElementById(`${level}Color`).value = defaults[level];
+                document.getElementById(`${level}ColorHex`).value = defaults[level];
+            });
+        }
+
+        function resetUpdateTime() {
+            document.getElementById('updateTime').value = '20:00';
+            document.getElementById('autoUpdateEnabled').checked = true;
+        }
+
+        function resetCollapseLevel() {
+            document.getElementById('collapseLevel').value = '2';
+        }
+
+        function resetTopUser() {
+            document.getElementById('topUserEmail').value = '';
+        }
+
+        async function resetAllSettings() {
+            if (confirm('Are you sure you want to reset all settings to defaults? This cannot be undone.')) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/reset-all-settings`, {
+                        method: 'POST'
+                    });
+                    
+                    if (response.ok) {
+                        showStatus('All settings reset to defaults!', 'success');
+                        setTimeout(() => location.reload(), 1500);
+                    }
+                } catch (error) {
+                    showStatus('Error resetting settings', 'error');
+                }
+            }
+        }
+
+        async function saveAllSettings() {
+            const settings = {
+                headerColor: document.getElementById('headerColor').value,
+                nodeColors: {
+                    level0: document.getElementById('level0Color').value,
+                    level1: document.getElementById('level1Color').value,
+                    level2: document.getElementById('level2Color').value
+                },
+                autoUpdateEnabled: document.getElementById('autoUpdateEnabled').checked,
+                updateTime: document.getElementById('updateTime').value,
+                collapseLevel: document.getElementById('collapseLevel').value,
+                searchAutoExpand: document.getElementById('searchAutoExpand').checked,
+                searchHighlight: document.getElementById('searchHighlight').checked,
+                showDepartments: document.getElementById('showDepartments').checked,
+                showEmployeeCount: document.getElementById('showEmployeeCount').checked,
+                showProfileImages: document.getElementById('showProfileImages').checked,
+                printOrientation: document.getElementById('printOrientation').value,
+                printSize: document.getElementById('printSize').value,
+                topUserEmail: document.getElementById('topUserEmail').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/settings`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(settings)
+                });
+
+                if (response.ok) {
+                    showStatus('Settings saved successfully!', 'success');
+                } else {
+                    showStatus('Error saving settings', 'error');
+                }
+            } catch (error) {
+                showStatus('Error saving settings', 'error');
+            }
+        }
+
+        async function triggerUpdate() {
+            const statusEl = document.getElementById('updateStatus');
+            statusEl.textContent = 'Updating...';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/update-now`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    statusEl.textContent = '✓ Update started';
+                    setTimeout(() => statusEl.textContent = '', 3000);
+                } else {
+                    statusEl.textContent = '✗ Update failed';
+                }
+            } catch (error) {
+                statusEl.textContent = '✗ Update failed';
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.className = `status-message ${type}`;
+            setTimeout(() => {
+                statusEl.className = 'status-message';
+            }, 3000);
+        }
+
+        // Load settings on page load
+        document.addEventListener('DOMContentLoaded', loadSettings);
+    </script>
+</body>
+</html>

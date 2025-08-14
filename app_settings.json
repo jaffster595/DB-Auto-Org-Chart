@@ -1,0 +1,20 @@
+{
+  "headerColor": "#161a41",
+  "logoPath": "/static/icon.png",
+  "nodeColors": {
+    "level0": "#90ee90",
+    "level1": "#ffffe0",
+    "level2": "#e0f2ff"
+  },
+  "autoUpdateEnabled": true,
+  "updateTime": "20:00",
+  "collapseLevel": "2",
+  "searchAutoExpand": true,
+  "searchHighlight": true,
+  "showDepartments": true,
+  "showEmployeeCount": true,
+  "showProfileImages": true,
+  "printOrientation": "landscape",
+  "printSize": "a4",
+  "topUserEmail": "the.boss@dannybeattie21outlook.onmicrosoft.com"
+}

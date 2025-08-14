@@ -9,6 +9,8 @@ import time
 import schedule
 import logging
 from dotenv import load_dotenv
+from werkzeug.utils import secure_filename
+import shutil
 
 load_dotenv()
 
@@ -23,7 +25,11 @@ if not os.path.exists('static'):
 
 GRAPH_API_ENDPOINT = 'https://graph.microsoft.com/v1.0'
 DATA_FILE = 'employee_data.json'
+SETTINGS_FILE = 'app_settings.json'
 
+# Configuration for file uploads
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'svg'}
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
 TENANT_ID = os.environ.get('AZURE_TENANT_ID')
 CLIENT_ID = os.environ.get('AZURE_CLIENT_ID')
@@ -41,6 +47,59 @@ TOP_LEVEL_USER_ID = os.environ.get('TOP_LEVEL_USER_ID')
 
 scheduler_running = False
 scheduler_lock = threading.Lock()
+
+# Default settings
+DEFAULT_SETTINGS = {
+    'headerColor': '#0078d4',
+    'logoPath': '/static/icon.png',
+    'nodeColors': {
+        'level0': '#90EE90',
+        'level1': '#FFFFE0',
+        'level2': '#E0F2FF',
+        'level3': '#FFE4E1',
+        'level4': '#E8DFF5',
+        'level5': '#FFEAA7'
+    },
+    'autoUpdateEnabled': True,
+    'updateTime': '20:00',
+    'collapseLevel': '2',
+    'searchAutoExpand': True,
+    'searchHighlight': True,
+    'showDepartments': True,
+    'showEmployeeCount': True,
+    'showProfileImages': True,
+    'printOrientation': 'landscape',
+    'printSize': 'a4',
+    'topUserEmail': TOP_LEVEL_USER_EMAIL or ''
+}
+
+def load_settings():
+    """Load settings from file or return defaults"""
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE, 'r') as f:
+                settings = json.load(f)
+                # Merge with defaults to ensure all keys exist
+                for key in DEFAULT_SETTINGS:
+                    if key not in settings:
+                        settings[key] = DEFAULT_SETTINGS[key]
+                return settings
+        except Exception as e:
+            logger.error(f"Error loading settings: {e}")
+    return DEFAULT_SETTINGS.copy()
+
+def save_settings(settings):
+    """Save settings to file"""
+    try:
+        with open(SETTINGS_FILE, 'w') as f:
+            json.dump(settings, f, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving settings: {e}")
+        return False
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def get_access_token():
     token_url = f'https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/token'
@@ -115,6 +174,9 @@ def build_org_hierarchy(employees):
     if not employees:
         return None
     
+    settings = load_settings()
+    top_user_email = settings.get('topUserEmail') or TOP_LEVEL_USER_EMAIL
+    
     emp_dict = {emp['id']: emp.copy() for emp in employees}
     
     for emp_id in emp_dict:
@@ -125,9 +187,9 @@ def build_org_hierarchy(employees):
     if TOP_LEVEL_USER_ID and TOP_LEVEL_USER_ID in emp_dict:
         root = emp_dict[TOP_LEVEL_USER_ID]
         logger.info(f"Using configured top-level user by ID: {root['name']}")
-    elif TOP_LEVEL_USER_EMAIL:
+    elif top_user_email:
         for emp in employees:
-            if emp.get('email') == TOP_LEVEL_USER_EMAIL:
+            if emp.get('email') == top_user_email:
                 root = emp_dict[emp['id']]
                 logger.info(f"Using configured top-level user by email: {root['name']}")
                 break
@@ -195,13 +257,18 @@ def update_employee_data():
 def schedule_updates():
     global scheduler_running
     
-    # Run initial update on startup if enabled. Comment the 3 below lines out if you want to turn this off.
+    settings = load_settings()
+    
+    # Run initial update on startup if enabled
     if os.environ.get('RUN_INITIAL_UPDATE', 'true').lower() == 'true':
         logger.info(f"[{datetime.now()}] Running initial employee data update on startup...")
         update_employee_data()
     
-    # This sets the update time each day. Change the value below to amend the update time each day.
-    schedule.every().day.at("20:00").do(update_employee_data)
+    # Schedule daily updates based on settings
+    if settings.get('autoUpdateEnabled', True):
+        update_time = settings.get('updateTime', '20:00')
+        schedule.every().day.at(update_time).do(update_employee_data)
+        logger.info(f"Scheduled daily updates at {update_time}")
     
     while scheduler_running:
         schedule.run_pending()
@@ -222,12 +289,20 @@ def stop_scheduler():
         scheduler_running = False
         logger.info("Scheduler stopped")
 
-def get_index_html():
+def restart_scheduler():
+    """Restart scheduler with new settings"""
+    stop_scheduler()
+    time.sleep(2)  # Give it time to stop
+    schedule.clear()  # Clear all scheduled jobs
+    start_scheduler()
+
+def get_template(template_name):
+    """Load HTML template from file"""
     possible_paths = [
-        'templates/index.html',
-        'index.html',
-        os.path.join(os.path.dirname(__file__), 'templates', 'index.html'),
-        os.path.join(os.path.dirname(__file__), 'index.html')
+        f'templates/{template_name}',
+        template_name,
+        os.path.join(os.path.dirname(__file__), 'templates', template_name),
+        os.path.join(os.path.dirname(__file__), template_name)
     ]
     
     for path in possible_paths:
@@ -239,15 +314,24 @@ def get_index_html():
             except Exception as e:
                 logger.error(f"Error reading {path}: {e}")
     
-    logger.error("index.html not found in any expected location")
-    return "<h1>Error: index.html not found</h1><p>Looked in: templates/index.html and ./index.html</p>"
+    logger.error(f"{template_name} not found in any expected location")
+    return f"<h1>Error: {template_name} not found</h1>"
 
 @app.route('/')
 def index():
-    return render_template_string(get_index_html())
+    return render_template_string(get_template('index.html'))
+
+@app.route('/configure')
+def configure():
+    return render_template_string(get_template('configureme.html'))
 
 @app.route('/static/<path:filename>')
 def serve_static(filename):
+    # Check if custom logo exists
+    if filename == 'icon.png':
+        custom_logo = os.path.join('static', 'icon_custom.png')
+        if os.path.exists(custom_logo):
+            return send_from_directory('static', 'icon_custom.png')
     return send_from_directory('static', filename)
 
 @app.route('/api/employees')
@@ -284,6 +368,95 @@ def get_employees():
         return jsonify(data)
     except Exception as e:
         logger.error(f"Error in get_employees: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/settings', methods=['GET', 'POST'])
+def handle_settings():
+    if request.method == 'GET':
+        settings = load_settings()
+        return jsonify(settings)
+    
+    elif request.method == 'POST':
+        try:
+            new_settings = request.json
+            current_settings = load_settings()
+            
+            # Update settings
+            current_settings.update(new_settings)
+            
+            # Save settings
+            if save_settings(current_settings):
+                # If update time or auto-update changed, restart scheduler
+                if ('updateTime' in new_settings or 'autoUpdateEnabled' in new_settings):
+                    threading.Thread(target=restart_scheduler).start()
+                
+                return jsonify({'success': True})
+            else:
+                return jsonify({'error': 'Failed to save settings'}), 500
+        except Exception as e:
+            logger.error(f"Error updating settings: {e}")
+            return jsonify({'error': str(e)}), 500
+
+@app.route('/api/upload-logo', methods=['POST'])
+def upload_logo():
+    try:
+        if 'logo' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['logo']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        if file and allowed_file(file.filename):
+            # Save as icon_custom.png
+            custom_logo_path = os.path.join('static', 'icon_custom.png')
+            file.save(custom_logo_path)
+            
+            # Update settings
+            settings = load_settings()
+            settings['logoPath'] = '/static/icon.png'  # This will serve custom if exists
+            save_settings(settings)
+            
+            return jsonify({'success': True, 'path': '/static/icon.png'})
+        else:
+            return jsonify({'error': 'Invalid file type'}), 400
+    except Exception as e:
+        logger.error(f"Error uploading logo: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/reset-logo', methods=['POST'])
+def reset_logo():
+    try:
+        custom_logo_path = os.path.join('static', 'icon_custom.png')
+        if os.path.exists(custom_logo_path):
+            os.remove(custom_logo_path)
+        
+        settings = load_settings()
+        settings['logoPath'] = '/static/icon.png'
+        save_settings(settings)
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        logger.error(f"Error resetting logo: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/reset-all-settings', methods=['POST'])
+def reset_all_settings():
+    try:
+        # Remove custom logo if exists
+        custom_logo_path = os.path.join('static', 'icon_custom.png')
+        if os.path.exists(custom_logo_path):
+            os.remove(custom_logo_path)
+        
+        # Reset to default settings
+        save_settings(DEFAULT_SETTINGS)
+        
+        # Restart scheduler with default settings
+        threading.Thread(target=restart_scheduler).start()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        logger.error(f"Error resetting all settings: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/search')
@@ -360,7 +533,8 @@ def debug_data():
             'total_employees': len(employees),
             'raw_employees': employees,
             'hierarchy': hierarchy,
-            'has_managers': any(emp.get('managerId') for emp in employees)
+            'has_managers': any(emp.get('managerId') for emp in employees),
+            'current_settings': load_settings()
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
