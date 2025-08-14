@@ -210,7 +210,9 @@ To obtain the values for TOP_LEVEL_USER_EMAIL and TOP_LEVEL_USER_ID you need to 
 
 <img width="942" height="682" alt="image" src="https://github.com/user-attachments/assets/6b3066bc-0376-462e-bdee-7c6f67834cbb" />
 
+## How to customise and configure this application
 
+Simply navigate to your Org Chart, then at the end of the web address add /config or /configure. So your web address will look something like this: http://127.0.0.1:5000/configure 
 
 ## Deploy to Azure as an App Service
 TBC
@@ -227,7 +229,7 @@ TBC
 - ~~Switch to Gunicorn (linux) and Waitress (Windows)~~ DONE
 - ~~Create a logging function to record the outcome of each daily API update.~~ DONE
 - ~~Create detailed instructions for the readme.md~~ DONE
-- Add a /config/ route for intial setup (upload a logo, changing header text, page name, update time, update frequency, refresh now, colour scheme and theme etc).
+- ~~Add a /config/ route for intial setup (upload a logo, changing header text, page name, update time, update frequency, refresh now, colour scheme and theme etc).~~ DONE
 - Add an options panel for the user to customise the view (colours, depth, font size, card layout etc).
 - Make the contact pop-out window to the right more visually appealing.
 - The final level of each department to appear vertically rather than horizontally, to reclaim some page width.
