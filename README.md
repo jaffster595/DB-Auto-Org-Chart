@@ -76,30 +76,22 @@ See the 'Environment Variables' section further down this page.
 
   • POST /api/update-now - Trigger manual data update
 
-  ### Configureme.html
+  ### Configureme.html - Customise the appearance and behaviour of the app
 
 You can configure various aspects of the application by adding '/configure' to the end of the web address, so http://127.0.0.1:5000/ would become http://127.0.0.1:5000/configure
 
-<image>
-
-
-
-The org chart updates automatically every day at 8:00 PM. To change this:
-
-1. Edit app.py
-
-2. Find the line: schedule.every().day.at("20:00").do(update_employee_data)
-
-3. Change "20:00" to your desired time (24-hour format)
-
-### Manual Update
-
-You can trigger a manual update by simply restarting the application or sending a POST request to /api/update-now
-
-<img width="1192" height="1218" alt="image" src="https://github.com/user-attachments/assets/6d40008c-9878-4976-b53e-d68885a896f9" />
+You will be taken to the configuration page, with the first section allowing you to amend the appeareance of the Application (colours, custom logo etc) and the second section giving you options to amend the behaviour of the application:
 
 <img width="1167" height="1183" alt="image" src="https://github.com/user-attachments/assets/2797ed6f-c7dd-4eb1-88a7-fd8bd252bc75" />
 
+Everything here should be self-explanatory.
+
+### Manual Update
+
+You can trigger a manual update by doing any of the following:
+1) Restart the application
+2) Send a POST request to /api/update-now
+3) Go to /configure and click 'Update now'
 
 
 ## Running the application locally:
@@ -222,18 +214,14 @@ To obtain the values for TOP_LEVEL_USER_EMAIL and TOP_LEVEL_USER_ID you need to 
 
 <img width="942" height="682" alt="image" src="https://github.com/user-attachments/assets/6b3066bc-0376-462e-bdee-7c6f67834cbb" />
 
-## How to customise and configure this application
-
-Simply navigate to your Org Chart, then at the end of the web address add /config or /configure. So your web address will look something like this: http://127.0.0.1:5000/configure 
-
 ## Deploy to Azure as an App Service
 TBC
 
 ## FAQ
-TBC
+TBC - Will populate with real questions if/when they arise.
 
 ## Troubleshooting
-TBC
+TBC - Will populate if/when anybody has issues
 
 ## To-Do list
 - ~~Add the option to print the current view~~ DONE
