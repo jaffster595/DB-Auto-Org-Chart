@@ -12,9 +12,9 @@
   "searchAutoExpand": true,
   "searchHighlight": true,
   "showDepartments": true,
-  "showEmployeeCount": true,
+  "showEmployeeCount": false,
   "showProfileImages": true,
   "printOrientation": "landscape",
   "printSize": "a4",
-  "topUserEmail": "the.boss@dannybeattie21outlook.onmicrosoft.com"
+  "topUserEmail": ""
 }

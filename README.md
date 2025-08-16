@@ -63,20 +63,6 @@ See the 'Environment Variables' section further down this page.
   • Timeout: 30 seconds
 
   • Logging: Configured for production use
-  
-### Update Schedule
-
-The org chart updates automatically every day at 8:00 PM. To change this:
-
-1. Edit app.py
-
-2. Find the line: schedule.every().day.at("20:00").do(update_employee_data)
-
-3. Change "20:00" to your desired time (24-hour format)
-
-### Manual Update
-
-You can trigger a manual update by simply restarting the application or sending a POST request to /api/update-now
 
 ### API Endpoints
 
@@ -89,6 +75,26 @@ You can trigger a manual update by simply restarting the application or sending 
   • GET /api/employee/<id> - Get specific employee details
 
   • POST /api/update-now - Trigger manual data update
+
+  ### Configureme.html
+
+You can configure various aspects of the application by adding '/configure' to the end of the web address, so http://127.0.0.1:5000/ would become http://127.0.0.1:5000/configure
+
+<image>
+
+
+
+The org chart updates automatically every day at 8:00 PM. To change this:
+
+1. Edit app.py
+
+2. Find the line: schedule.every().day.at("20:00").do(update_employee_data)
+
+3. Change "20:00" to your desired time (24-hour format)
+
+### Manual Update
+
+You can trigger a manual update by simply restarting the application or sending a POST request to /api/update-now
 
 ## Running the application locally:
 
