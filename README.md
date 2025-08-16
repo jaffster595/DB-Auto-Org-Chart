@@ -96,6 +96,12 @@ The org chart updates automatically every day at 8:00 PM. To change this:
 
 You can trigger a manual update by simply restarting the application or sending a POST request to /api/update-now
 
+<img width="1192" height="1218" alt="image" src="https://github.com/user-attachments/assets/6d40008c-9878-4976-b53e-d68885a896f9" />
+
+<img width="1167" height="1183" alt="image" src="https://github.com/user-attachments/assets/2797ed6f-c7dd-4eb1-88a7-fd8bd252bc75" />
+
+
+
 ## Running the application locally:
 
 Make sure you have populated your .env file with the details from your Azure tenant, then follow the appropriate section depending upon your OS:
