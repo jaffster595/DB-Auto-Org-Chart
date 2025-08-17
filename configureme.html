@@ -343,6 +343,15 @@
             
             <div class="config-group">
                 <div class="config-item">
+                    <label class="config-label">Chart Title</label>
+                    <div class="config-description">Customize the main title displayed in the header</div>
+                    <div class="config-controls">
+                        <input type="text" id="chartTitle" placeholder="Organization Chart" style="width: 300px;">
+                        <button class="btn btn-secondary" onclick="resetChartTitle()">Reset to Default</button>
+                    </div>
+                </div>
+
+                <div class="config-item">
                     <label class="config-label">Header Bar Color</label>
                     <div class="config-description">Choose the color for the top header bar</div>
                     <div class="config-controls">
@@ -388,6 +397,21 @@
                             <span style="width: 80px; display: inline-block;">Level 2:</span>
                             <input type="color" id="level2Color" value="#E0F2FF">
                             <input type="text" id="level2ColorHex" placeholder="#E0F2FF" maxlength="7" style="width: 100px;">
+                        </div>
+                        <div class="config-controls">
+                            <span style="width: 80px; display: inline-block;">Level 3:</span>
+                            <input type="color" id="level3Color" value="#FFE4E1">
+                            <input type="text" id="level3ColorHex" placeholder="#FFE4E1" maxlength="7" style="width: 100px;">
+                        </div>
+                        <div class="config-controls">
+                            <span style="width: 80px; display: inline-block;">Level 4:</span>
+                            <input type="color" id="level4Color" value="#E8DFF5">
+                            <input type="text" id="level4ColorHex" placeholder="#E8DFF5" maxlength="7" style="width: 100px;">
+                        </div>
+                        <div class="config-controls">
+                            <span style="width: 80px; display: inline-block;">Level 5:</span>
+                            <input type="color" id="level5Color" value="#FFEAA7">
+                            <input type="text" id="level5ColorHex" placeholder="#FFEAA7" maxlength="7" style="width: 100px;">
                         </div>
                         <button class="btn btn-secondary" onclick="resetNodeColors()">Reset All Node Colors</button>
                     </div>
@@ -537,6 +561,10 @@
         }
 
         function applySettings(settings) {
+            if (settings.chartTitle) {
+                document.getElementById('chartTitle').value = settings.chartTitle;
+            }
+
             if (settings.headerColor) {
                 document.getElementById('headerColor').value = settings.headerColor;
                 document.getElementById('headerColorHex').value = settings.headerColor;
@@ -555,10 +583,10 @@
                         if (colorInput && hexInput) {
                             colorInput.value = settings.nodeColors[level];
                             hexInput.value = settings.nodeColors[level];
+                        }
                     }
-                 }
-            });
-        }
+                });
+            }
 
             if (settings.autoUpdateEnabled !== undefined) {
                 document.getElementById('autoUpdateEnabled').checked = settings.autoUpdateEnabled;
@@ -618,8 +646,8 @@
             }
         });
 
-        // Sync level color inputs
-        ['level0', 'level1', 'level2'].forEach(level => {
+        // Sync level color inputs for all 6 levels
+        ['level0', 'level1', 'level2', 'level3', 'level4', 'level5'].forEach(level => {
             const colorInput = document.getElementById(`${level}Color`);
             const hexInput = document.getElementById(`${level}ColorHex`);
             
@@ -675,6 +703,10 @@
         });
 
         // Reset functions
+        function resetChartTitle() {
+            document.getElementById('chartTitle').value = 'Organization Chart';
+        }
+
         function resetHeaderColor() {
             document.getElementById('headerColor').value = '#0078d4';
             document.getElementById('headerColorHex').value = '#0078d4';
@@ -690,7 +722,10 @@
             const defaults = {
                 'level0': '#90EE90',
                 'level1': '#FFFFE0',
-                'level2': '#E0F2FF'
+                'level2': '#E0F2FF',
+                'level3': '#FFE4E1',
+                'level4': '#E8DFF5',
+                'level5': '#FFEAA7'
             };
             
             Object.keys(defaults).forEach(level => {
@@ -714,6 +749,22 @@
 
         async function resetAllSettings() {
             if (confirm('Are you sure you want to reset all settings to defaults? This cannot be undone.')) {
+                // Reset all form fields to defaults
+                document.getElementById('chartTitle').value = 'Organization Chart';
+                resetHeaderColor();
+                resetLogo();
+                resetNodeColors();
+                resetUpdateTime();
+                resetCollapseLevel();
+                resetTopUser();
+                document.getElementById('searchAutoExpand').checked = true;
+                document.getElementById('searchHighlight').checked = true;
+                document.getElementById('showDepartments').checked = true;
+                document.getElementById('showEmployeeCount').checked = true;
+                document.getElementById('showProfileImages').checked = true;
+                document.getElementById('printOrientation').value = 'landscape';
+                document.getElementById('printSize').value = 'a4';
+                
                 try {
                     const response = await fetch(`${API_BASE_URL}/api/reset-all-settings`, {
                         method: 'POST'
@@ -731,11 +782,15 @@
 
         async function saveAllSettings() {
             const settings = {
+                chartTitle: document.getElementById('chartTitle').value || 'Organization Chart',
                 headerColor: document.getElementById('headerColor').value,
                 nodeColors: {
                     level0: document.getElementById('level0Color').value,
                     level1: document.getElementById('level1Color').value,
-                    level2: document.getElementById('level2Color').value
+                    level2: document.getElementById('level2Color').value,
+                    level3: document.getElementById('level3Color').value,
+                    level4: document.getElementById('level4Color').value,
+                    level5: document.getElementById('level5Color').value
                 },
                 autoUpdateEnabled: document.getElementById('autoUpdateEnabled').checked,
                 updateTime: document.getElementById('updateTime').value,

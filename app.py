@@ -50,6 +50,7 @@ scheduler_lock = threading.Lock()
 
 # Default settings
 DEFAULT_SETTINGS = {
+    'chartTitle': 'DB Auto Org Chart',
     'headerColor': '#0078d4',
     'logoPath': '/static/icon.png',
     'nodeColors': {
@@ -467,28 +468,59 @@ def search_employees():
         return jsonify([])
     
     try:
-        with open(DATA_FILE, 'r') as f:
-            data = json.load(f)
+        # Check if data file exists
+        if not os.path.exists(DATA_FILE):
+            logger.warning(f"Data file {DATA_FILE} not found, attempting to fetch data")
+            update_employee_data()
+        
+        # Try to read the data file
+        if os.path.exists(DATA_FILE):
+            with open(DATA_FILE, 'r') as f:
+                data = json.load(f)
+        else:
+            # If still no data file, return empty results
+            logger.error("Could not create or find employee data file")
+            return jsonify([])
         
         def flatten(node, results=None):
             if results is None:
                 results = []
-            results.append(node)
-            for child in node.get('children', []):
-                flatten(child, results)
+            # Add node to results
+            if node and isinstance(node, dict):
+                results.append(node)
+                # Recursively add children
+                children = node.get('children', [])
+                if children and isinstance(children, list):
+                    for child in children:
+                        flatten(child, results)
             return results
         
         all_employees = flatten(data)
         
-        results = [
-            emp for emp in all_employees
-            if query in emp.get('name', '').lower() or
-               query in emp.get('title', '').lower() or
-               query in emp.get('department', '').lower()
-        ]
+        # Filter results based on query
+        results = []
+        for emp in all_employees:
+            if emp and isinstance(emp, dict):
+                name_match = query in emp.get('name', '').lower()
+                title_match = query in emp.get('title', '').lower()
+                dept_match = query in emp.get('department', '').lower()
+                
+                if name_match or title_match or dept_match:
+                    results.append(emp)
         
+        # Return top 10 results
         return jsonify(results[:10])
+    except FileNotFoundError as e:
+        logger.error(f"File not found in search: {e}")
+        return jsonify([])
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON decode error in search: {e}")
+        return jsonify([])
     except Exception as e:
+        logger.error(f"Error in search_employees: {e}")
+        logger.error(f"Query was: {query}")
+        import traceback
+        logger.error(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/employee/<employee_id>')
@@ -523,21 +555,106 @@ def trigger_update():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/debug')
-def debug_data():
+@app.route('/search-test')
+def search_test():
+    return render_template_string(get_template('search_test.html'))
+
+@app.route('/api/debug-search')
+def debug_search():
+    """Debug endpoint to check search functionality"""
     try:
-        employees = fetch_all_employees()
-        hierarchy = build_org_hierarchy(employees)
+        info = {
+            'data_file_exists': os.path.exists(DATA_FILE),
+            'data_file_path': os.path.abspath(DATA_FILE) if os.path.exists(DATA_FILE) else 'Not found',
+            'data_file_size': os.path.getsize(DATA_FILE) if os.path.exists(DATA_FILE) else 0,
+        }
         
-        return jsonify({
-            'total_employees': len(employees),
-            'raw_employees': employees,
-            'hierarchy': hierarchy,
-            'has_managers': any(emp.get('managerId') for emp in employees),
-            'current_settings': load_settings()
-        })
+        if os.path.exists(DATA_FILE):
+            with open(DATA_FILE, 'r') as f:
+                data = json.load(f)
+                
+                def count_employees(node):
+                    count = 1
+                    for child in node.get('children', []):
+                        count += count_employees(child)
+                    return count
+                
+                info['total_employees'] = count_employees(data) if data else 0
+                info['root_employee'] = data.get('name', 'Unknown') if data else 'No data'
+                info['has_children'] = bool(data.get('children')) if data else False
+                
+                # Try to flatten and get sample
+                def flatten(node, results=None):
+                    if results is None:
+                        results = []
+                    if node and isinstance(node, dict):
+                        results.append({
+                            'id': node.get('id'),
+                            'name': node.get('name'),
+                            'title': node.get('title'),
+                            'department': node.get('department')
+                        })
+                        children = node.get('children', [])
+                        if children and isinstance(children, list):
+                            for child in children:
+                                flatten(child, results)
+                    return results
+                
+                all_employees = flatten(data)
+                info['sample_employees'] = all_employees[:5] if all_employees else []
+                info['searchable_count'] = len(all_employees)
+        else:
+            info['error'] = 'Data file does not exist. Try triggering an update.'
+            
+        return jsonify(info)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        import traceback
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/force-update', methods=['POST'])
+def force_update():
+    """Force an immediate update and wait for completion"""
+    try:
+        logger.info("Force update requested")
+        update_employee_data()
+        
+        # Check if file was created
+        if os.path.exists(DATA_FILE):
+            with open(DATA_FILE, 'r') as f:
+                data = json.load(f)
+                
+            def count_employees(node):
+                if not node:
+                    return 0
+                count = 1
+                for child in node.get('children', []):
+                    count += count_employees(child)
+                return count
+                
+            total = count_employees(data)
+            return jsonify({
+                'success': True,
+                'message': f'Data updated successfully. {total} employees in hierarchy.',
+                'file_created': True
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Update completed but no data file created. Check Azure AD credentials.',
+                'file_created': False
+            })
+    except Exception as e:
+        logger.error(f"Force update error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
 
 if __name__ != '__main__':
     start_scheduler()

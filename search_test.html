@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Functionality Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #0078d4;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+        }
+        .btn {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: #0078d4;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #0b559f;
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #218838;
+        }
+        .btn-warning {
+            background: #ffc107;
+            color: black;
+        }
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+        .search-box {
+            padding: 10px;
+            width: 300px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            min-height: 100px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .info {
+            color: #0078d4;
+        }
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .status-good {
+            background: #28a745;
+        }
+        .status-bad {
+            background: #dc3545;
+        }
+        .employee-item {
+            padding: 8px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Search Functionality Test & Debug</h1>
+        
+        <div class="test-section">
+            <h2>1. Check Data File Status</h2>
+            <button class="btn btn-primary" onclick="checkDataFile()">Check Data File</button>
+            <button class="btn btn-warning" onclick="debugSearch()">Debug Search System</button>
+            <div id="dataFileResults" class="results"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>2. Force Data Update</h2>
+            <p>If the data file doesn't exist or is empty, force an update:</p>
+            <button class="btn btn-success" onclick="forceUpdate()">Force Update Now</button>
+            <div id="updateResults" class="results"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>3. Test Search</h2>
+            <input type="text" id="searchQuery" class="search-box" placeholder="Enter search term (min 2 chars)">
+            <button class="btn btn-primary" onclick="testSearch()">Test Search</button>
+            <div id="searchResults" class="results"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>4. View All Employees</h2>
+            <button class="btn btn-primary" onclick="viewAllEmployees()">Load All Employees</button>
+            <div id="allEmployees" class="results"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        async function checkDataFile() {
+            const resultsDiv = document.getElementById('dataFileResults');
+            resultsDiv.innerHTML = '<span class="info">Checking data file...</span>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/employees`);
+                const data = await response.json();
+                
+                if (data && data.name) {
+                    resultsDiv.innerHTML = `
+                        <span class="success">✓ Data file exists and is valid</span><br>
+                        <strong>Root Employee:</strong> ${data.name}<br>
+                        <strong>Title:</strong> ${data.title || 'N/A'}<br>
+                        <strong>Children:</strong> ${data.children ? data.children.length : 0}
+                    `;
+                } else {
+                    resultsDiv.innerHTML = '<span class="error">✗ Data file exists but structure is invalid</span>';
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<span class="error">✗ Error checking data: ${error.message}</span>`;
+            }
+        }
+
+        async function debugSearch() {
+            const resultsDiv = document.getElementById('dataFileResults');
+            resultsDiv.innerHTML = '<span class="info">Running debug...</span>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/debug-search`);
+                const data = await response.json();
+                
+                resultsDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                resultsDiv.innerHTML = `<span class="error">✗ Debug failed: ${error.message}</span>`;
+            }
+        }
+
+        async function forceUpdate() {
+            const resultsDiv = document.getElementById('updateResults');
+            resultsDiv.innerHTML = '<span class="info">Forcing update... This may take a moment...</span>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/force-update`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultsDiv.innerHTML = `<span class="success">✓ ${data.message}</span>`;
+                } else {
+                    resultsDiv.innerHTML = `<span class="error">✗ ${data.message || data.error}</span>`;
+                    if (data.traceback) {
+                        resultsDiv.innerHTML += `<pre>${data.traceback}</pre>`;
+                    }
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<span class="error">✗ Update failed: ${error.message}</span>`;
+            }
+        }
+
+        async function testSearch() {
+            const query = document.getElementById('searchQuery').value;
+            const resultsDiv = document.getElementById('searchResults');
+            
+            if (query.length < 2) {
+                resultsDiv.innerHTML = '<span class="error">Please enter at least 2 characters</span>';
+                return;
+            }
+            
+            resultsDiv.innerHTML = '<span class="info">Searching...</span>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(query)}`);
+                
+                if (!response.ok) {
+                    const error = await response.text();
+                    resultsDiv.innerHTML = `<span class="error">✗ Search returned error: ${response.status}</span><pre>${error}</pre>`;
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                    resultsDiv.innerHTML = `<span class="success">✓ Found ${data.length} results:</span><br><br>`;
+                    data.forEach(emp => {
+                        resultsDiv.innerHTML += `
+                            <div class="employee-item">
+                                <strong>${emp.name}</strong><br>
+                                ${emp.title || 'No title'}<br>
+                                ${emp.department || 'No department'}
+                            </div>
+                        `;
+                    });
+                } else {
+                    resultsDiv.innerHTML = '<span class="error">No results found</span>';
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<span class="error">✗ Search error: ${error.message}</span>`;
+            }
+        }
+
+        async function viewAllEmployees() {
+            const resultsDiv = document.getElementById('allEmployees');
+            resultsDiv.innerHTML = '<span class="info">Loading all employees...</span>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/employees`);
+                const data = await response.json();
+                
+                function flattenEmployees(node, level = 0) {
+                    let html = `<div style="margin-left: ${level * 20}px;" class="employee-item">`;
+                    html += `<strong>${node.name}</strong> - ${node.title || 'No title'}`;
+                    html += `</div>`;
+                    
+                    if (node.children && node.children.length > 0) {
+                        node.children.forEach(child => {
+                            html += flattenEmployees(child, level + 1);
+                        });
+                    }
+                    
+                    return html;
+                }
+                
+                resultsDiv.innerHTML = flattenEmployees(data);
+            } catch (error) {
+                resultsDiv.innerHTML = `<span class="error">✗ Error loading employees: ${error.message}</span>`;
+            }
+        }
+
+        // Run initial check on page load
+        window.onload = () => {
+            checkDataFile();
+        };
+    </script>
+</body>
+</html>

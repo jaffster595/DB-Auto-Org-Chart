@@ -221,6 +221,13 @@ TBC
 TBC - Will populate with real questions if/when they arise.
 
 ## Troubleshooting
+
+**Changes that I've made aren't updating on the chart:**
+Load the page with a fresh cache (Ctrl + F5) as your browser will be holding on to the old Javascript.
+
+**Problems with the search feature:**
+Navigate to /search-test to open search_test.html. Here you'll find various tools to check the status of your employee data and also to test the data directly from employee_data.json.
+
 TBC - Will populate if/when anybody has issues
 
 ## To-Do list

@@ -543,6 +543,11 @@
         }
 
         function applySettings() {
+            // Apply chart title
+            if (appSettings.chartTitle) {
+                document.querySelector('.header-text h1').textContent = appSettings.chartTitle;
+            }
+
             // Apply header color
             if (appSettings.headerColor) {
                 const header = document.querySelector('.header');
