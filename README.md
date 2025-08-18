@@ -4,7 +4,8 @@ DB-AutoOrgChart is an application which connects to your Azure AD/Entra via Grap
 In short, these are the main features of DB-AutoOrgChart:
 
 - Automatic organization hierarchy generation from Azure AD
-- Real-time employee search functionality
+- Real-time employee search functionality (employee directory)
+- Completely configurable with zero coding knowledge via configureme page
 - Interactive D3.js-based org chart with zoom and pan
 - Detailed employee information panel
 - Print-friendly org chart export

@@ -145,12 +145,12 @@ def fetch_all_employees():
                     if user.get('displayName'):
                         employee = {
                             'id': user.get('id'),
-                            'name': user.get('displayName'),
-                            'title': user.get('jobTitle', 'No Title'),
-                            'department': user.get('department', 'No Department'),
-                            'email': user.get('mail'),
-                            'phone': user.get('mobilePhone'),
-                            'location': user.get('officeLocation'),
+                            'name': user.get('displayName') or 'Unknown',
+                            'title': user.get('jobTitle') or 'No Title',
+                            'department': user.get('department') or 'No Department',
+                            'email': user.get('mail') or '',
+                            'phone': user.get('mobilePhone') or '',
+                            'location': user.get('officeLocation') or '',
                             'managerId': user.get('manager', {}).get('id') if user.get('manager') else None,
                             'children': []
                         }
@@ -497,24 +497,36 @@ def search_employees():
         
         all_employees = flatten(data)
         
-        # Filter results based on query
         results = []
         for emp in all_employees:
             if emp and isinstance(emp, dict):
-                name_match = query in emp.get('name', '').lower()
-                title_match = query in emp.get('title', '').lower()
-                dept_match = query in emp.get('department', '').lower()
+                name = emp.get('name') or ''
+                title = emp.get('title') or ''
+                department = emp.get('department') or ''
+                
+                name_match = query in name.lower()
+                title_match = query in title.lower()
+                dept_match = query in department.lower()
                 
                 if name_match or title_match or dept_match:
                     results.append(emp)
         
-        # Return top 10 results
         return jsonify(results[:10])
     except FileNotFoundError as e:
         logger.error(f"File not found in search: {e}")
         return jsonify([])
     except json.JSONDecodeError as e:
         logger.error(f"JSON decode error in search: {e}")
+        return jsonify([])
+    except AttributeError as e:
+        logger.error(f"Attribute error in search (likely None value): {e}")
+        logger.error(f"Query was: {query}")
+        try:
+            for emp in all_employees:
+                if emp:
+                    logger.debug(f"Employee data: name={emp.get('name')}, title={emp.get('title')}, dept={emp.get('department')}")
+        except:
+            pass
         return jsonify([])
     except Exception as e:
         logger.error(f"Error in search_employees: {e}")
