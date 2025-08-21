@@ -242,3 +242,12 @@ TBC - Will populate if/when anybody has issues
 - Make the contact pop-out window to the right more visually appealing.
 - The final level of each department to appear vertically rather than horizontally, to reclaim some page width.
 - Build a docker image for convenience.
+- Add more navigation options such as fit to screen, collapse all, expand all etc.
+- Create an 'installer' script which will generate the .env file.
+- Import employee photos from Graph API, cached locally, failback to current icon if no image found.
+- Option to export a high quality PDF of the entire collapsed Org Chart.
+- Add statistics box/page which shows headcount trends over time, average team sizes by level, department distribution etc
+- Add 'New hire indicators' (bold/enhanced card that stands out) for those who have joined within the last 3 months
+- Text only view for compact exporting and printing
+
+
