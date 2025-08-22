@@ -19,8 +19,10 @@ In short, these are the main features of DB-AutoOrgChart:
 It makes one API call per day at 8PM and saves the acquired data within employee_data.json, which sits securely within the app service. When someone visits the org chart, it displays the Org data based upon the contents of employee_data.json rather than making constant API calls via Graph API. This way it makes a single API request, once per day, rather than making constant requests each time someone visit the page. This not only reduces the amount of traffic caused by this application, but also makes it faster and more responsive.
 
 ## Prerequisites
-1. Python 3.8 or higher (Created with Python 3.10)
-2. An Azure AD tenant with appropriate permissions
+1. Python 3.8 or higher (Created with Python 3.10, so start there if unsure)
+2. An Azure AD tenant with appropriate permissions to:
+  a. Register an App in Azure for Graph API
+  b. Create an App Service in Azure (optional but recommended)
 3. Azure AD App Registration with User.Read.All permissions and admin consent (a guide to set this up is below)
 
 ## Local installation
@@ -54,6 +56,10 @@ pip install -r requirements.txt
 See the 'Environment Variables' section further down this page.
 
 ## Configuration for local install
+
+Check 'gunicorn_config.py' if you're on Linux, 'run_waitress.py' if you're on Windows.
+
+For reference:
 
 ### Gunicorn Configuration (gunicorn_config.py)
 
@@ -219,17 +225,22 @@ To obtain the values for TOP_LEVEL_USER_EMAIL and TOP_LEVEL_USER_ID you need to 
 TBC
 
 ## FAQ
-TBC - Will populate with real questions if/when they arise.
+
+**How can I change the logo or user icon images?**
+You can replace the logo on the /configure page, if that is not working for you then simply replace 'icon.png' in the /static/ folder with your own version. I recommend keeping to the resolution of 678 x 246.
+Replacing the user icon is a similar process, just replace 'usericon.png' with your own version and stick to 128 x 128.
+
+TBC - Will continue to populate with real questions if/when they arise.
 
 ## Troubleshooting
 
 **Changes that I've made aren't updating on the chart:**
-Load the page with a fresh cache (Ctrl + F5) as your browser will be holding on to the old Javascript.
+Load the page with a fresh cache (Ctrl + F5) as your browser will be holding on to the old Javascript. Any errors communicating with Azure via Graph API will be shown in the terminal.
 
 **Problems with the search feature:**
 Navigate to /search-test to open search_test.html. Here you'll find various tools to check the status of your employee data and also to test the data directly from employee_data.json.
 
-TBC - Will populate if/when anybody has issues
+TBC - Will continue to populate if/when anybody has issues
 
 ## To-Do list
 - ~~Add the option to print the current view~~ DONE
@@ -238,12 +249,12 @@ TBC - Will populate if/when anybody has issues
 - ~~Create a logging function to record the outcome of each daily API update.~~ DONE
 - ~~Create detailed instructions for the readme.md~~ DONE
 - ~~Add a /config/ route for intial setup (upload a logo, changing header text, page name, update time, update frequency, refresh now, colour scheme and theme etc).~~ DONE
-- Add an options panel for the user to customise the view (colours, depth, font size, card layout etc).
+- ~~Add more navigation options such as fit to screen, collapse all, expand all etc.~~ DONE
+- Add an 'options' panel for the user to customise the view (colours, depth, font size, card layout etc).
 - Make the contact pop-out window to the right more visually appealing.
 - The final level of each department to appear vertically rather than horizontally, to reclaim some page width.
 - Build a docker image for convenience.
-- Add more navigation options such as fit to screen, collapse all, expand all etc.
-- Create an 'installer' script which will generate the .env file.
+- Create an 'installer' script which will automatically run through the process of setting up Graph API and/or App Service using Powershell.
 - Import employee photos from Graph API, cached locally, failback to current icon if no image found.
 - Option to export a high quality PDF of the entire collapsed Org Chart.
 - Add statistics box/page which shows headcount trends over time, average team sizes by level, department distribution etc

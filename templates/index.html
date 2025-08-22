@@ -145,22 +145,32 @@
             right: 20px;
             z-index: 10;
             display: flex;
-            gap: 10px;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
         .control-btn {
-            padding: 8px 16px;
+            padding: 8px 12px;
             background: white;
             border: 1px solid #ddd;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 12px;
             transition: all 0.3s ease;
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .control-btn:hover {
             background: #f5f5f5;
             border-color: #0078d4;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .control-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .employee-detail {
@@ -205,11 +215,12 @@
             .controls {
                 top: 10px;
                 right: 10px;
+                max-width: calc(100vw - 40px);
             }
 
             .control-btn {
-                padding: 6px 12px;
-                font-size: 12px;
+                padding: 6px 10px;
+                font-size: 11px;
             }
         }
 
@@ -494,9 +505,12 @@
         <div class="main-content">
             <div class="org-chart-container" id="orgChart">
                 <div class="controls">
-                    <button class="control-btn" onclick="zoomIn()">+</button>
-                    <button class="control-btn" onclick="zoomOut()">-</button>
+                    <button class="control-btn" onclick="zoomIn()">Zoom In +</button>
+                    <button class="control-btn" onclick="zoomOut()">Zoom Out -</button>
                     <button class="control-btn" onclick="resetZoom()">Reset Zoom</button>
+                    <button class="control-btn" onclick="fitToScreen()">Fit to Screen</button>
+                    <button class="control-btn" onclick="expandAll()">Expand All</button>
+                    <button class="control-btn" onclick="collapseAll()">Collapse All</button>
                     <button class="control-btn" onclick="printChart()">Print</button>
                 </div>
                 <div class="loading">
@@ -944,6 +958,52 @@
             svg.transition()
                 .duration(750)
                 .call(zoom.transform, d3.zoomIdentity.translate(width/2, 50));
+        }
+
+        function fitToScreen() {
+            if (!root || !svg) return;
+            
+            // Get the bounds of all visible nodes
+            const treeLayout = d3.tree().nodeSize([nodeWidth + 20, levelHeight]);
+            const treeData = treeLayout(root);
+            const nodes = treeData.descendants();
+            
+            if (nodes.length === 0) return;
+            
+            // Calculate the bounding box of all nodes
+            const minX = d3.min(nodes, d => d.x) - nodeWidth / 2;
+            const maxX = d3.max(nodes, d => d.x) + nodeWidth / 2;
+            const minY = d3.min(nodes, d => d.y) - nodeHeight / 2;
+            const maxY = d3.max(nodes, d => d.y) + nodeHeight / 2;
+            
+            const width = maxX - minX;
+            const height = maxY - minY;
+            
+            // Get container dimensions
+            const container = document.getElementById('orgChart');
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+            
+            // Calculate scale to fit (with some padding)
+            const scale = Math.min(
+                (containerWidth * 0.9) / width,
+                (containerHeight * 0.9) / height,
+                1 // Don't scale up beyond 100%
+            );
+            
+            // Calculate center position
+            const centerX = (minX + maxX) / 2;
+            const centerY = (minY + maxY) / 2;
+            
+            // Apply the transform
+            svg.transition()
+                .duration(750)
+                .call(zoom.transform, 
+                    d3.zoomIdentity
+                        .translate(containerWidth / 2, containerHeight / 2)
+                        .scale(scale)
+                        .translate(-centerX, -centerY)
+                );
         }
 
         function zoomIn() {
