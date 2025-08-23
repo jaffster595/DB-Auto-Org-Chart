@@ -372,6 +372,35 @@
             filter: drop-shadow(0 0 8px rgba(255, 107, 107, 0.5));
         }
 
+        .node-rect.new-employee {
+            stroke: #28a745 !important;
+            stroke-width: 4px !important;
+            filter: drop-shadow(0 0 10px rgba(40, 167, 69, 0.4));
+            animation: pulse-new 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-new {
+            0%, 100% {
+                filter: drop-shadow(0 0 10px rgba(40, 167, 69, 0.4));
+            }
+            50% {
+                filter: drop-shadow(0 0 20px rgba(40, 167, 69, 0.6));
+            }
+        }
+
+        .new-badge {
+            fill: #28a745;
+            stroke: white;
+            stroke-width: 2px;
+        }
+
+        .new-badge-text {
+            fill: white;
+            font-size: 10px;
+            font-weight: bold;
+            pointer-events: none;
+        }
+
         .node-text {
             font-size: 14px;
             fill: #333;
@@ -557,24 +586,20 @@
         }
 
         function applySettings() {
-            // Apply chart title
             if (appSettings.chartTitle) {
                 document.querySelector('.header-text h1').textContent = appSettings.chartTitle;
             }
 
-            // Apply header color
             if (appSettings.headerColor) {
                 const header = document.querySelector('.header');
                 const darker = adjustColor(appSettings.headerColor, -30);
                 header.style.background = `linear-gradient(135deg, ${appSettings.headerColor} 0%, ${darker} 100%)`;
             }
 
-            // Update logo
             if (appSettings.logoPath) {
                 document.querySelector('.header-logo').src = appSettings.logoPath + '?t=' + Date.now();
             }
 
-            // Update schedule text if needed
             if (appSettings.updateTime) {
                 const timeText = appSettings.autoUpdateEnabled ? 
                     `Updates daily @ ${convertTo12Hour(appSettings.updateTime)}` : 
@@ -630,7 +655,6 @@
             return list;
         }
 
-        // Render the organization chart using D3
         function renderOrgChart(data) {
             if (!data) {
                 console.error('No data to render');
@@ -648,7 +672,6 @@
                 .attr('width', width)
                 .attr('height', height);
 
-            // zoom behavior
             zoom = d3.zoom()
                 .scaleExtent([0.1, 3])
                 .on('zoom', (event) => {
@@ -668,7 +691,6 @@
             const treeLayout = d3.tree()
                 .nodeSize([nodeWidth + 20, levelHeight]);
 
-            // Apply collapse level from settings
             const collapseLevel = appSettings.collapseLevel || '2';
             if (collapseLevel !== 'all') {
                 const level = parseInt(collapseLevel);
@@ -729,13 +751,18 @@
                 });
 
             nodeEnter.append('rect')
-                .attr('class', 'node-rect')
+                .attr('class', d => {
+                    let classes = 'node-rect';
+                    if (appSettings.highlightNewEmployees !== false && d.data.isNewEmployee) {
+                        classes += ' new-employee';
+                    }
+                    return classes;
+                })
                 .attr('x', -nodeWidth/2)
                 .attr('y', -nodeHeight/2)
                 .attr('width', nodeWidth)
                 .attr('height', nodeHeight)
                 .style('fill', d => {
-                    // Apply colors from settings or use defaults
                     const nodeColors = appSettings.nodeColors || {};
                     switch(d.depth) {
                         case 0: return nodeColors.level0 || '#90EE90';
@@ -748,7 +775,9 @@
                     }
                 })
                 .style('stroke', d => {
-                    // Apply border colors based on depth level (darker version of fill)
+                    if (appSettings.highlightNewEmployees !== false && d.data.isNewEmployee) {
+                        return null;
+                    }
                     const nodeColors = appSettings.nodeColors || {};
                     let fillColor;
                     switch(d.depth) {
@@ -764,7 +793,6 @@
                 })
                 .style('stroke-width', '2px');
 
-            // Profile image - only show if enabled in settings
             if (appSettings.showProfileImages !== false) {
                 nodeEnter.append('image')
                     .attr('xlink:href', userIconUrl)
@@ -776,7 +804,6 @@
                     .attr('preserveAspectRatio', 'xMidYMid slice');
             }
 
-            // Node text - Name
             nodeEnter.append('text')
                 .attr('class', 'node-text')
                 .attr('x', appSettings.showProfileImages !== false ? nodeWidth/2 - 10 : 0)
@@ -788,7 +815,6 @@
                     return name.length > 22 ? name.substring(0, 22) + '...' : name;
                 });
 
-            // Node text - Title
             nodeEnter.append('text')
                 .attr('class', 'node-title')
                 .attr('x', appSettings.showProfileImages !== false ? nodeWidth/2 - 10 : 0)
@@ -799,7 +825,6 @@
                     return title.length > 28 ? title.substring(0, 28) + '...' : title;
                 });
 
-            // Node text - Department (only if enabled)
             if (appSettings.showDepartments !== false) {
                 nodeEnter.append('text')
                     .attr('class', 'node-department')
@@ -841,7 +866,6 @@
                     });
             }
 
-            // Expand/Collapse button
             const expandBtn = nodeEnter.append('g')
                 .attr('class', 'expand-group')
                 .style('display', d => (d._children?.length || d.children?.length) ? 'block' : 'none')
@@ -861,6 +885,29 @@
                 .attr('text-anchor', 'middle')
                 .text(d => d._children?.length ? '+' : '-');
 
+            if (appSettings.highlightNewEmployees !== false) {
+                const newBadgeGroup = nodeEnter.append('g')
+                    .attr('class', 'new-employee-badge')
+                    .style('display', d => d.data.isNewEmployee ? 'block' : 'none');
+
+                newBadgeGroup.append('rect')
+                    .attr('class', 'new-badge')
+                    .attr('x', nodeWidth/2 - 45)
+                    .attr('y', -nodeHeight/2 - 10)
+                    .attr('width', 35)
+                    .attr('height', 18)
+                    .attr('rx', 9)
+                    .attr('ry', 9);
+
+                newBadgeGroup.append('text')
+                    .attr('class', 'new-badge-text')
+                    .attr('x', nodeWidth/2 - 27)
+                    .attr('y', -nodeHeight/2 + 2)
+                    .attr('text-anchor', 'middle')
+                    .text('NEW');
+            }
+
+
             const nodeUpdate = node.merge(nodeEnter)
                 .transition()
                 .duration(500)
@@ -872,7 +919,6 @@
             nodeUpdate.select('.expand-group')
                 .style('display', d => (d._children?.length || d.children?.length) ? 'block' : 'none');
 
-            // Update employee count if enabled
             if (appSettings.showEmployeeCount !== false) {
                 nodeUpdate.select('.count-badge')
                     .style('display', d => {
@@ -910,15 +956,12 @@
 
         function toggle(d) {
             if (d.children) {
-                // Collapsing - store all children
                 d._children = d.children;
                 d.children = null;
             } else {
-                // Expanding - restore children but ensure deeper levels remain collapsed
                 d.children = d._children;
                 d._children = null;
                 
-                // Ensure all newly visible children at depth >= 3 are collapsed
                 if (d.children) {
                     d.children.forEach(child => {
                         if (child.depth >= 2 && child.children) {
@@ -963,14 +1006,12 @@
         function fitToScreen() {
             if (!root || !svg) return;
             
-            // Get the bounds of all visible nodes
             const treeLayout = d3.tree().nodeSize([nodeWidth + 20, levelHeight]);
             const treeData = treeLayout(root);
             const nodes = treeData.descendants();
             
             if (nodes.length === 0) return;
             
-            // Calculate the bounding box of all nodes
             const minX = d3.min(nodes, d => d.x) - nodeWidth / 2;
             const maxX = d3.max(nodes, d => d.x) + nodeWidth / 2;
             const minY = d3.min(nodes, d => d.y) - nodeHeight / 2;
@@ -979,23 +1020,19 @@
             const width = maxX - minX;
             const height = maxY - minY;
             
-            // Get container dimensions
             const container = document.getElementById('orgChart');
             const containerWidth = container.clientWidth;
             const containerHeight = container.clientHeight;
             
-            // Calculate scale to fit (with some padding)
             const scale = Math.min(
                 (containerWidth * 0.9) / width,
                 (containerHeight * 0.9) / height,
-                1 // Don't scale up beyond 100%
+                1 
             );
             
-            // Calculate center position
             const centerX = (minX + maxX) / 2;
             const centerY = (minY + maxY) / 2;
             
-            // Apply the transform
             svg.transition()
                 .duration(750)
                 .call(zoom.transform, 
@@ -1046,11 +1083,9 @@
             const viewWidth = bounds.maxX - bounds.minX;
             const viewHeight = bounds.maxY - bounds.minY;
 
-            // Get print settings
             const orientation = appSettings.printOrientation || 'landscape';
             const size = appSettings.printSize || 'a4';
             
-            // Set page dimensions based on settings
             let pageWidth, pageHeight;
             if (size === 'a4') {
                 pageWidth = orientation === 'landscape' ? 1123 : 796;
@@ -1200,7 +1235,6 @@
             printWin.print();
         }
 
-        // Show employee detail panel
         function showEmployeeDetail(employee) {
             const detailPanel = document.getElementById('employeeDetail');
             const headerContent = document.getElementById('employeeDetailContent');
@@ -1362,9 +1396,7 @@
         }
 
         function expandToEmployee(employeeId) {
-            // Check if auto-expand is enabled in settings
             if (appSettings.searchAutoExpand === false) {
-                // Just highlight without expanding
                 const targetNode = findNodeById(root, employeeId);
                 if (targetNode) {
                     highlightNode(employeeId);
@@ -1408,7 +1440,6 @@
             
             const targetNode = path[path.length - 1];
             if (targetNode) {
-                // Highlight the found node
                 setTimeout(() => {
                     highlightNode(employeeId);
                 }, 600);
@@ -1430,7 +1461,6 @@
 
         document.addEventListener('DOMContentLoaded', init);
 
-        // Close detail panel with Escape key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeEmployeeDetail();

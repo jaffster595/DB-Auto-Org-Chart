@@ -4,7 +4,10 @@
   "nodeColors": {
     "level0": "#90ee90",
     "level1": "#ffffe0",
-    "level2": "#e0f2ff"
+    "level2": "#e0f2ff",
+    "level3": "#ffe4e1",
+    "level4": "#e8dff5",
+    "level5": "#ffeaa7"
   },
   "autoUpdateEnabled": true,
   "updateTime": "20:00",
@@ -16,5 +19,8 @@
   "showProfileImages": true,
   "printOrientation": "landscape",
   "printSize": "a4",
-  "topUserEmail": ""
+  "topUserEmail": "",
+  "chartTitle": "DB Auto Org Chart",
+  "highlightNewEmployees": true,
+  "newEmployeeMonths": 3
 }

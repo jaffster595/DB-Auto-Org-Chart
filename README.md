@@ -227,7 +227,7 @@ TBC
 ## FAQ
 
 **How can I change the logo or user icon images?**
-You can replace the logo on the /configure page, if that is not working for you then simply replace 'icon.png' in the /static/ folder with your own version. I recommend keeping to the resolution of 678 x 246.
+You can replace the logo on the /configure page, but if that is not working for you then simply replace 'icon.png' in the /static/ folder with your own version. I recommend keeping to the resolution of 678 x 246.
 Replacing the user icon is a similar process, just replace 'usericon.png' with your own version and stick to 128 x 128.
 
 TBC - Will continue to populate with real questions if/when they arise.

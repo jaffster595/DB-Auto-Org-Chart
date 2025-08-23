@@ -496,6 +496,27 @@
                 </div>
 
                 <div class="config-item">
+                    <label class="config-label">New Employee Highlighting</label>
+                    <div class="config-description">Highlight employees who recently joined the organization</div>
+                    <div class="config-controls">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="highlightNewEmployees" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <span>Highlight new employees</span>
+                    </div>
+                    <div class="config-controls" style="margin-top: 10px;">
+                        <span style="margin-right: 10px;">Consider employees new if joined within:</span>
+                        <select id="newEmployeeMonths">
+                            <option value="1">1 month</option>
+                            <option value="3" selected>3 months</option>
+                            <option value="6">6 months</option>
+                            <option value="12">12 months</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="config-item">
                     <label class="config-label">Print Options</label>
                     <div class="config-description">Configure print layout settings</div>
                     <div class="config-controls">
@@ -547,7 +568,6 @@
         const API_BASE_URL = window.location.origin;
         let currentSettings = {};
 
-        // Load current settings on page load
         async function loadSettings() {
             try {
                 const response = await fetch(`${API_BASE_URL}/api/settings`);
@@ -620,6 +640,14 @@
                 document.getElementById('showProfileImages').checked = settings.showProfileImages;
             }
 
+            if (settings.highlightNewEmployees !== undefined) {
+                document.getElementById('highlightNewEmployees').checked = settings.highlightNewEmployees;
+            }
+
+            if (settings.newEmployeeMonths !== undefined) {
+                document.getElementById('newEmployeeMonths').value = settings.newEmployeeMonths;
+            }
+
             if (settings.printOrientation) {
                 document.getElementById('printOrientation').value = settings.printOrientation;
             }
@@ -633,7 +661,6 @@
             }
         }
 
-        // Color picker synchronization
         document.getElementById('headerColor').addEventListener('input', function(e) {
             document.getElementById('headerColorHex').value = e.target.value;
             updateHeaderPreview(e.target.value);
@@ -646,7 +673,6 @@
             }
         });
 
-        // Sync level color inputs for all 6 levels
         ['level0', 'level1', 'level2', 'level3', 'level4', 'level5'].forEach(level => {
             const colorInput = document.getElementById(`${level}Color`);
             const hexInput = document.getElementById(`${level}ColorHex`);
@@ -676,7 +702,6 @@
             return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
         }
 
-        // Logo upload handling
         document.getElementById('logoUpload').addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -702,7 +727,6 @@
             }
         });
 
-        // Reset functions
         function resetChartTitle() {
             document.getElementById('chartTitle').value = 'Organization Chart';
         }
@@ -749,7 +773,6 @@
 
         async function resetAllSettings() {
             if (confirm('Are you sure you want to reset all settings to defaults? This cannot be undone.')) {
-                // Reset all form fields to defaults
                 document.getElementById('chartTitle').value = 'Organization Chart';
                 resetHeaderColor();
                 resetLogo();
@@ -762,6 +785,8 @@
                 document.getElementById('showDepartments').checked = true;
                 document.getElementById('showEmployeeCount').checked = true;
                 document.getElementById('showProfileImages').checked = true;
+                document.getElementById('highlightNewEmployees').checked = true;
+                document.getElementById('newEmployeeMonths').value = '3';
                 document.getElementById('printOrientation').value = 'landscape';
                 document.getElementById('printSize').value = 'a4';
                 
@@ -800,6 +825,8 @@
                 showDepartments: document.getElementById('showDepartments').checked,
                 showEmployeeCount: document.getElementById('showEmployeeCount').checked,
                 showProfileImages: document.getElementById('showProfileImages').checked,
+                highlightNewEmployees: document.getElementById('highlightNewEmployees').checked,
+                newEmployeeMonths: parseInt(document.getElementById('newEmployeeMonths').value),
                 printOrientation: document.getElementById('printOrientation').value,
                 printSize: document.getElementById('printSize').value,
                 topUserEmail: document.getElementById('topUserEmail').value
@@ -834,7 +861,7 @@
                 });
                 
                 if (response.ok) {
-                    statusEl.textContent = '✓ Update started';
+                    statusEl.textContent = '✔ Update started';
                     setTimeout(() => statusEl.textContent = '', 3000);
                 } else {
                     statusEl.textContent = '✗ Update failed';
@@ -853,7 +880,6 @@
             }, 3000);
         }
 
-        // Load settings on page load
         document.addEventListener('DOMContentLoaded', loadSettings);
     </script>
 </body>

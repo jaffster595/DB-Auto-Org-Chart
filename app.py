@@ -2,7 +2,7 @@ from flask import Flask, render_template_string, jsonify, request, send_from_dir
 from flask_cors import CORS
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import requests
 import threading
 import time
@@ -29,7 +29,7 @@ SETTINGS_FILE = 'app_settings.json'
 
 # Configuration for file uploads
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'svg'}
-MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+MAX_FILE_SIZE = 5 * 1024 * 1024
 
 TENANT_ID = os.environ.get('AZURE_TENANT_ID')
 CLIENT_ID = os.environ.get('AZURE_CLIENT_ID')
@@ -71,7 +71,9 @@ DEFAULT_SETTINGS = {
     'showProfileImages': True,
     'printOrientation': 'landscape',
     'printSize': 'a4',
-    'topUserEmail': TOP_LEVEL_USER_EMAIL or ''
+    'topUserEmail': TOP_LEVEL_USER_EMAIL or '',
+    'highlightNewEmployees': True,
+    'newEmployeeMonths': 3
 }
 
 def load_settings():
@@ -80,7 +82,6 @@ def load_settings():
         try:
             with open(SETTINGS_FILE, 'r') as f:
                 settings = json.load(f)
-                # Merge with defaults to ensure all keys exist
                 for key in DEFAULT_SETTINGS:
                     if key not in settings:
                         settings[key] = DEFAULT_SETTINGS[key]
@@ -132,7 +133,7 @@ def fetch_all_employees():
     }
     
     employees = []
-    users_url = f'{GRAPH_API_ENDPOINT}/users?$select=id,displayName,jobTitle,department,mail,mobilePhone,officeLocation&$expand=manager($select=id,displayName)'
+    users_url = f'{GRAPH_API_ENDPOINT}/users?$select=id,displayName,jobTitle,department,mail,mobilePhone,officeLocation,employeeHireDate&$expand=manager($select=id,displayName)'
     
     while users_url:
         try:
@@ -143,6 +144,30 @@ def fetch_all_employees():
             if 'value' in data:
                 for user in data['value']:
                     if user.get('displayName'):
+                        hire_date_str = user.get('employeeHireDate')
+                        is_new = False
+                        hire_date = None
+                        
+                        if hire_date_str:
+                            try:
+                                if 'T' in hire_date_str:
+                                    hire_date = datetime.fromisoformat(hire_date_str.replace('Z', '+00:00'))
+                                else:
+                                    hire_date = datetime.strptime(hire_date_str, '%Y-%m-%d')
+                                    hire_date = hire_date.replace(tzinfo=None)
+                                
+                                settings = load_settings()
+                                months_threshold = settings.get('newEmployeeMonths', 3)
+                                
+                                if hire_date.tzinfo:
+                                    cutoff_date = datetime.now(hire_date.tzinfo) - timedelta(days=months_threshold * 30)
+                                else:
+                                    cutoff_date = datetime.now() - timedelta(days=months_threshold * 30)
+                                
+                                is_new = hire_date > cutoff_date
+                            except Exception as e:
+                                logger.warning(f"Error parsing hire date for user {user.get('displayName')}: {e}")
+                        
                         employee = {
                             'id': user.get('id'),
                             'name': user.get('displayName') or 'Unknown',
@@ -152,6 +177,9 @@ def fetch_all_employees():
                             'phone': user.get('mobilePhone') or '',
                             'location': user.get('officeLocation') or '',
                             'managerId': user.get('manager', {}).get('id') if user.get('manager') else None,
+                            'employeeHireDate': hire_date_str,
+                            'hireDate': hire_date.isoformat() if hire_date else None,
+                            'isNewEmployee': is_new,
                             'children': []
                         }
                         employees.append(employee)
@@ -245,6 +273,29 @@ def update_employee_data():
             hierarchy = build_org_hierarchy(employees)
             
             if hierarchy:
+                settings = load_settings()
+                months_threshold = settings.get('newEmployeeMonths', 3)
+                
+                def update_new_status(node):
+                    if node.get('hireDate'):
+                        try:
+                            hire_date = datetime.fromisoformat(node['hireDate'])
+                            if hire_date.tzinfo:
+                                cutoff_date = datetime.now(hire_date.tzinfo) - timedelta(days=months_threshold * 30)
+                            else:
+                                cutoff_date = datetime.now() - timedelta(days=months_threshold * 30)
+                            node['isNewEmployee'] = hire_date > cutoff_date
+                        except:
+                            node['isNewEmployee'] = False
+                    else:
+                        node['isNewEmployee'] = False
+                    
+                    if node.get('children'):
+                        for child in node['children']:
+                            update_new_status(child)
+                
+                update_new_status(hierarchy)
+                
                 with open(DATA_FILE, 'w') as f:
                     json.dump(hierarchy, f, indent=2)
                 logger.info(f"[{datetime.now()}] Successfully updated employee data. Total employees: {len(employees)}")
@@ -260,12 +311,10 @@ def schedule_updates():
     
     settings = load_settings()
     
-    # Run initial update on startup if enabled
     if os.environ.get('RUN_INITIAL_UPDATE', 'true').lower() == 'true':
         logger.info(f"[{datetime.now()}] Running initial employee data update on startup...")
         update_employee_data()
     
-    # Schedule daily updates based on settings
     if settings.get('autoUpdateEnabled', True):
         update_time = settings.get('updateTime', '20:00')
         schedule.every().day.at(update_time).do(update_employee_data)
@@ -293,8 +342,8 @@ def stop_scheduler():
 def restart_scheduler():
     """Restart scheduler with new settings"""
     stop_scheduler()
-    time.sleep(2)  # Give it time to stop
-    schedule.clear()  # Clear all scheduled jobs
+    time.sleep(2)
+    schedule.clear()
     start_scheduler()
 
 def get_template(template_name):
@@ -328,7 +377,6 @@ def configure():
 
 @app.route('/static/<path:filename>')
 def serve_static(filename):
-    # Check if custom logo exists
     if filename == 'icon.png':
         custom_logo = os.path.join('static', 'icon_custom.png')
         if os.path.exists(custom_logo):
@@ -343,6 +391,30 @@ def get_employees():
         
         with open(DATA_FILE, 'r') as f:
             data = json.load(f)
+        
+        if data:
+            settings = load_settings()
+            months_threshold = settings.get('newEmployeeMonths', 3)
+            
+            def update_new_status(node):
+                if node.get('hireDate'):
+                    try:
+                        hire_date = datetime.fromisoformat(node['hireDate'])
+                        if hire_date.tzinfo:
+                            cutoff_date = datetime.now(hire_date.tzinfo) - timedelta(days=months_threshold * 30)
+                        else:
+                            cutoff_date = datetime.now() - timedelta(days=months_threshold * 30)
+                        node['isNewEmployee'] = hire_date > cutoff_date
+                    except:
+                        node['isNewEmployee'] = False
+                else:
+                    node['isNewEmployee'] = False
+                
+                if node.get('children'):
+                    for child in node['children']:
+                        update_new_status(child)
+            
+            update_new_status(data)
         
         if not data:
             logger.warning("No hierarchical data available")
@@ -382,12 +454,9 @@ def handle_settings():
             new_settings = request.json
             current_settings = load_settings()
             
-            # Update settings
             current_settings.update(new_settings)
             
-            # Save settings
             if save_settings(current_settings):
-                # If update time or auto-update changed, restart scheduler
                 if ('updateTime' in new_settings or 'autoUpdateEnabled' in new_settings):
                     threading.Thread(target=restart_scheduler).start()
                 
@@ -409,13 +478,10 @@ def upload_logo():
             return jsonify({'error': 'No file selected'}), 400
         
         if file and allowed_file(file.filename):
-            # Save as icon_custom.png
             custom_logo_path = os.path.join('static', 'icon_custom.png')
             file.save(custom_logo_path)
-            
-            # Update settings
             settings = load_settings()
-            settings['logoPath'] = '/static/icon.png'  # This will serve custom if exists
+            settings['logoPath'] = '/static/icon.png'
             save_settings(settings)
             
             return jsonify({'success': True, 'path': '/static/icon.png'})
@@ -444,15 +510,12 @@ def reset_logo():
 @app.route('/api/reset-all-settings', methods=['POST'])
 def reset_all_settings():
     try:
-        # Remove custom logo if exists
         custom_logo_path = os.path.join('static', 'icon_custom.png')
         if os.path.exists(custom_logo_path):
             os.remove(custom_logo_path)
         
-        # Reset to default settings
         save_settings(DEFAULT_SETTINGS)
         
-        # Restart scheduler with default settings
         threading.Thread(target=restart_scheduler).start()
         
         return jsonify({'success': True})
@@ -468,27 +531,22 @@ def search_employees():
         return jsonify([])
     
     try:
-        # Check if data file exists
         if not os.path.exists(DATA_FILE):
             logger.warning(f"Data file {DATA_FILE} not found, attempting to fetch data")
             update_employee_data()
         
-        # Try to read the data file
         if os.path.exists(DATA_FILE):
             with open(DATA_FILE, 'r') as f:
                 data = json.load(f)
         else:
-            # If still no data file, return empty results
             logger.error("Could not create or find employee data file")
             return jsonify([])
         
         def flatten(node, results=None):
             if results is None:
                 results = []
-            # Add node to results
             if node and isinstance(node, dict):
                 results.append(node)
-                # Recursively add children
                 children = node.get('children', [])
                 if children and isinstance(children, list):
                     for child in children:
@@ -595,7 +653,6 @@ def debug_search():
                 info['root_employee'] = data.get('name', 'Unknown') if data else 'No data'
                 info['has_children'] = bool(data.get('children')) if data else False
                 
-                # Try to flatten and get sample
                 def flatten(node, results=None):
                     if results is None:
                         results = []
@@ -633,7 +690,6 @@ def force_update():
         logger.info("Force update requested")
         update_employee_data()
         
-        # Check if file was created
         if os.path.exists(DATA_FILE):
             with open(DATA_FILE, 'r') as f:
                 data = json.load(f)
