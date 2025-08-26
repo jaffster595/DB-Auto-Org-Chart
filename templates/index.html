@@ -680,14 +680,16 @@
 
             svg.call(zoom);
 
-            g = svg.append('g')
-                .attr('transform', `translate(${width/2}, 50)`);
+            g = svg.append('g');
+    
+            const initialTransform = d3.zoomIdentity.translate(width/2, 50);
+            svg.call(zoom.transform, initialTransform);
 
             root = d3.hierarchy(data);
-            
-            root.x0 = 0;
+    
+             root.x0 = 0;
             root.y0 = 0;
-            
+    
             const treeLayout = d3.tree()
                 .nodeSize([nodeWidth + 20, levelHeight]);
 
