@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DB AutoOrgChart</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <script src='/static/d3.min.js'></script>
     <style>
         * {
             margin: 0;
@@ -139,6 +139,53 @@
             min-height: calc(100vh - 180px);
         }
 
+        .layout-toggle {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: flex;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .layout-btn {
+            padding: 8px 12px;
+            background: white;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .layout-btn:first-child {
+            border-right: 1px solid #ddd;
+        }
+
+        .layout-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .layout-btn.active {
+            background: #0078d4;
+            color: white;
+        }
+
+        .layout-icon {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         .controls {
             position: absolute;
             top: 20px;
@@ -219,6 +266,16 @@
             }
 
             .control-btn {
+                padding: 6px 10px;
+                font-size: 11px;
+            }
+
+            .layout-toggle {
+                top: 10px;
+                left: 10px;
+            }
+
+            .layout-btn {
                 padding: 6px 10px;
                 font-size: 11px;
             }
@@ -533,9 +590,19 @@
         
         <div class="main-content">
             <div class="org-chart-container" id="orgChart">
+                <div class="layout-toggle">
+                    <button class="layout-btn active" onclick="setLayoutOrientation('vertical')">
+                        <span class="layout-icon">↓</span>
+                        Vertical
+                    </button>
+                    <button class="layout-btn" onclick="setLayoutOrientation('horizontal')">
+                        <span class="layout-icon">→</span>
+                        Horizontal
+                    </button>
+                </div>
                 <div class="controls">
-                    <button class="control-btn" onclick="zoomIn()">Zoom In +</button>
-                    <button class="control-btn" onclick="zoomOut()">Zoom Out -</button>
+                    <button class="control-btn" onclick="zoomIn()">+</button>
+                    <button class="control-btn" onclick="zoomOut()">-</button>
                     <button class="control-btn" onclick="resetZoom()">Reset Zoom</button>
                     <button class="control-btn" onclick="fitToScreen()">Fit to Screen</button>
                     <button class="control-btn" onclick="expandAll()">Expand All</button>
@@ -566,6 +633,7 @@
         let g = null;
         let zoom = null;
         let appSettings = {};
+        let currentLayout = 'vertical'; // Default layout
 
         const API_BASE_URL = window.location.origin;
         const nodeWidth = 220;
@@ -622,6 +690,22 @@
             const suffix = h >= 12 ? 'PM' : 'AM';
             const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
             return `${h12}:${minutes} ${suffix}`;
+        }
+
+        function setLayoutOrientation(orientation) {
+            currentLayout = orientation;
+            
+            // Update button states
+            document.querySelectorAll('.layout-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.closest('.layout-btn').classList.add('active');
+            
+            // Re-render the chart with new orientation
+            if (root) {
+                update(root);
+                fitToScreen();
+            }
         }
 
         async function init() {
@@ -687,7 +771,7 @@
 
             root = d3.hierarchy(data);
     
-             root.x0 = 0;
+            root.x0 = 0;
             root.y0 = 0;
     
             const treeLayout = d3.tree()
@@ -709,11 +793,22 @@
 
         function update(source) {
             const treeLayout = d3.tree()
-                .nodeSize([nodeWidth + 20, levelHeight]);
+                .nodeSize(currentLayout === 'vertical' 
+                    ? [nodeWidth + 20, levelHeight] 
+                    : [levelHeight, nodeWidth + 20]);
 
             const treeData = treeLayout(root);
             const nodes = treeData.descendants();
             const links = treeData.links();
+
+            // Swap x and y coordinates for horizontal layout
+            if (currentLayout === 'horizontal') {
+                nodes.forEach(d => {
+                    const temp = d.x;
+                    d.x = d.y;
+                    d.y = temp;
+                });
+            }
 
             const link = g.selectAll('.link')
                 .data(links, d => d.target.data.id);
@@ -878,12 +973,14 @@
 
             expandBtn.append('circle')
                 .attr('class', 'expand-btn')
-                .attr('cy', nodeHeight/2 + 10)
+                .attr('cy', currentLayout === 'vertical' ? nodeHeight/2 + 10 : 0)
+                .attr('cx', currentLayout === 'horizontal' ? nodeWidth/2 + 10 : 0)
                 .attr('r', 10);
 
             expandBtn.append('text')
                 .attr('class', 'expand-text')
-                .attr('y', nodeHeight/2 + 15)
+                .attr('y', currentLayout === 'vertical' ? nodeHeight/2 + 15 : 4)
+                .attr('x', currentLayout === 'horizontal' ? nodeWidth/2 + 10 : 0)
                 .attr('text-anchor', 'middle')
                 .text(d => d._children?.length ? '+' : '-');
 
@@ -916,7 +1013,13 @@
                 .attr('transform', d => `translate(${d.x}, ${d.y})`);
 
             nodeUpdate.select('.expand-text')
-                .text(d => d._children?.length ? '+' : '-');
+                .text(d => d._children?.length ? '+' : '-')
+                .attr('y', currentLayout === 'vertical' ? nodeHeight/2 + 15 : 4)
+                .attr('x', currentLayout === 'horizontal' ? nodeWidth/2 + 10 : 0);
+
+            nodeUpdate.select('.expand-btn')
+                .attr('cy', currentLayout === 'vertical' ? nodeHeight/2 + 10 : 0)
+                .attr('cx', currentLayout === 'horizontal' ? nodeWidth/2 + 10 : 0);
 
             nodeUpdate.select('.expand-group')
                 .style('display', d => (d._children?.length || d.children?.length) ? 'block' : 'none');
@@ -948,12 +1051,19 @@
         }
 
         function diagonal(s, d) {
-            const midY = (s.y + d.y) / 2;
-            
-            return `M ${s.x} ${s.y + nodeHeight/2}
-                    L ${s.x} ${midY}
-                    L ${d.x} ${midY}
-                    L ${d.x} ${d.y - nodeHeight/2}`;
+            if (currentLayout === 'vertical') {
+                const midY = (s.y + d.y) / 2;
+                return `M ${s.x} ${s.y + nodeHeight/2}
+                        L ${s.x} ${midY}
+                        L ${d.x} ${midY}
+                        L ${d.x} ${d.y - nodeHeight/2}`;
+            } else {
+                const midX = (s.x + d.x) / 2;
+                return `M ${s.x + nodeWidth/2} ${s.y}
+                        L ${midX} ${s.y}
+                        L ${midX} ${d.y}
+                        L ${d.x - nodeWidth/2} ${d.y}`;
+            }
         }
 
         function toggle(d) {
