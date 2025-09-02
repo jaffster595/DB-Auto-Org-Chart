@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DB AutoOrgChart</title>
-    <script src='/static/d3.min.js'></script>
+    <script src="/static/d3.min.js"></script>
+    <script src="/static/jspdf.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -607,6 +608,8 @@
                     <button class="control-btn" onclick="fitToScreen()">Fit to Screen</button>
                     <button class="control-btn" onclick="expandAll()">Expand All</button>
                     <button class="control-btn" onclick="collapseAll()">Collapse All</button>
+                    <button class="control-btn" onclick="exportToImage('svg', false)" style="background: #28a745; color: white; border-color: #28a745;"> Export Visible (SVG)</button>
+                    <button class="control-btn" onclick="exportToImage('png', false)" style="background: #17a2b8; color: white; border-color: #17a2b8;"> Export Visible (PNG)</button>
                     <button class="control-btn" onclick="printChart()">Print</button>
                 </div>
                 <div class="loading">
@@ -1345,6 +1348,258 @@
             printWin.document.close();
             printWin.focus();
             printWin.print();
+        }
+
+        function exportToImage(format = 'svg', exportFullChart = false) {
+            const svgElement = createExportSVG(exportFullChart);
+            const svgString = new XMLSerializer().serializeToString(svgElement);
+            
+            if (format === 'svg') {
+                // Export as SVG
+                const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(svgBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `org-chart-${new Date().toISOString().split('T')[0]}.svg`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } else if (format === 'png') {
+                // Convert to PNG
+                const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(svgBlob);
+                const img = new Image();
+                
+                img.onload = function() {
+                    // Create high-res canvas (2x for better quality)
+                    const scale = 2;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width * scale;
+                    canvas.height = img.height * scale;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // White background
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Scale and draw
+                    ctx.scale(scale, scale);
+                    ctx.drawImage(img, 0, 0);
+                    
+                    // Download PNG
+                    canvas.toBlob(function(blob) {
+                        const pngUrl = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = pngUrl;
+                        a.download = `org-chart-${new Date().toISOString().split('T')[0]}.png`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(pngUrl);
+                    }, 'image/png');
+                    
+                    URL.revokeObjectURL(url);
+                };
+                
+                img.src = url;
+            }
+        }
+
+        function createExportSVG(exportFullChart = false) {
+            let nodesToExport, linksToExport;
+            
+            if (exportFullChart) {
+                // Original behavior - expand all and export everything
+                const originalChildren = {};
+                const saveAndExpand = (node) => {
+                    if (node._children) {
+                        originalChildren[node.data.id] = true;
+                        node.children = node._children;
+                        node._children = null;
+                    }
+                    if (node.children) {
+                        node.children.forEach(saveAndExpand);
+                    }
+                };
+                saveAndExpand(root);
+                
+                // Recalculate layout
+                const treeLayout = d3.tree()
+                    .nodeSize(currentLayout === 'vertical' 
+                        ? [nodeWidth + 20, levelHeight] 
+                        : [levelHeight, nodeWidth + 20]);
+                
+                const treeData = treeLayout(root);
+                nodesToExport = treeData.descendants();
+                linksToExport = treeData.links();
+                
+                // Restore state after getting data
+                const restoreState = (node) => {
+                    if (originalChildren[node.data.id]) {
+                        node._children = node.children;
+                        node.children = null;
+                    }
+                    if (node.children) {
+                        node.children.forEach(restoreState);
+                    }
+                };
+                restoreState(root);
+                update(root);
+            } else {
+                // Export only visible nodes
+                const treeLayout = d3.tree()
+                    .nodeSize(currentLayout === 'vertical' 
+                        ? [nodeWidth + 20, levelHeight] 
+                        : [levelHeight, nodeWidth + 20]);
+                
+                const treeData = treeLayout(root);
+                nodesToExport = treeData.descendants();
+                linksToExport = treeData.links();
+            }
+            
+            // Swap for horizontal layout
+            if (currentLayout === 'horizontal') {
+                nodesToExport.forEach(d => {
+                    const temp = d.x;
+                    d.x = d.y;
+                    d.y = temp;
+                });
+            }
+            
+            // Calculate bounds
+            const padding = 50;
+            const minX = d3.min(nodesToExport, d => d.x) - nodeWidth/2 - padding;
+            const maxX = d3.max(nodesToExport, d => d.x) + nodeWidth/2 + padding;
+            const minY = d3.min(nodesToExport, d => d.y) - nodeHeight/2 - padding;
+            const maxY = d3.max(nodesToExport, d => d.y) + nodeHeight/2 + padding;
+            
+            const width = maxX - minX;
+            const height = maxY - minY;
+            
+            // Create SVG
+            const exportSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            exportSvg.setAttribute('width', width);
+            exportSvg.setAttribute('height', height);
+            exportSvg.setAttribute('viewBox', `${minX} ${minY} ${width} ${height}`);
+            exportSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+            
+            // White background
+            const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            bg.setAttribute('x', minX);
+            bg.setAttribute('y', minY);
+            bg.setAttribute('width', width);
+            bg.setAttribute('height', height);
+            bg.setAttribute('fill', 'white');
+            exportSvg.appendChild(bg);
+            
+            // Add styles
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            const style = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+            style.textContent = `
+                .link { fill: none; stroke: #999; stroke-width: 2px; }
+                .node-rect { rx: 4; ry: 4; stroke-width: 2px; }
+                .node-text { font-size: 14px; fill: #333; font-weight: 600; font-family: Arial, sans-serif; }
+                .node-title { font-size: 11px; fill: #555; font-family: Arial, sans-serif; }
+                .node-department { font-size: 11px; fill: #666; font-style: italic; font-family: Arial, sans-serif; }
+                .expand-indicator { fill: #0078d4; font-size: 14px; font-weight: bold; }
+            `;
+            defs.appendChild(style);
+            exportSvg.appendChild(defs);
+            
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            
+            // Draw links
+            linksToExport.forEach(link => {
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('class', 'link');
+                path.setAttribute('d', diagonal(link.source, link.target));
+                g.appendChild(path);
+            });
+            
+            // Draw nodes
+            nodesToExport.forEach(d => {
+                const nodeG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                nodeG.setAttribute('transform', `translate(${d.x}, ${d.y})`);
+                
+                // Rectangle
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', -nodeWidth/2);
+                rect.setAttribute('y', -nodeHeight/2);
+                rect.setAttribute('width', nodeWidth);
+                rect.setAttribute('height', nodeHeight);
+                rect.setAttribute('rx', 4);
+                rect.setAttribute('ry', 4);
+                
+                const nodeColors = appSettings.nodeColors || {};
+                let fillColor;
+                switch(d.depth) {
+                    case 0: fillColor = nodeColors.level0 || '#90EE90'; break;
+                    case 1: fillColor = nodeColors.level1 || '#FFFFE0'; break;
+                    case 2: fillColor = nodeColors.level2 || '#E0F2FF'; break;
+                    case 3: fillColor = nodeColors.level3 || '#FFE4E1'; break;
+                    case 4: fillColor = nodeColors.level4 || '#E8DFF5'; break;
+                    case 5: fillColor = nodeColors.level5 || '#FFEAA7'; break;
+                    default: fillColor = '#F0F0F0';
+                }
+                rect.setAttribute('fill', fillColor);
+                rect.setAttribute('stroke', adjustColor(fillColor, -50));
+                rect.setAttribute('stroke-width', '2');
+                nodeG.appendChild(rect);
+                
+                // Name
+                const nameText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                nameText.setAttribute('class', 'node-text');
+                nameText.setAttribute('x', 0);
+                nameText.setAttribute('y', -20);
+                nameText.setAttribute('text-anchor', 'middle');
+                nameText.textContent = d.data.name;
+                nodeG.appendChild(nameText);
+                
+                // Title
+                const titleText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                titleText.setAttribute('class', 'node-title');
+                titleText.setAttribute('x', 0);
+                titleText.setAttribute('y', -5);
+                titleText.setAttribute('text-anchor', 'middle');
+                titleText.textContent = d.data.title;
+                nodeG.appendChild(titleText);
+                
+                // Department
+                if (appSettings.showDepartments !== false && d.data.department) {
+                    const deptText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    deptText.setAttribute('class', 'node-department');
+                    deptText.setAttribute('x', 0);
+                    deptText.setAttribute('y', 25);
+                    deptText.setAttribute('text-anchor', 'middle');
+                    deptText.textContent = d.data.department;
+                    nodeG.appendChild(deptText);
+                }
+                
+                // Add expand indicator if node has hidden children
+                if (d._children && d._children.length > 0) {
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    circle.setAttribute('cx', 0);
+                    circle.setAttribute('cy', currentLayout === 'vertical' ? nodeHeight/2 + 10 : 0);
+                    circle.setAttribute('r', 10);
+                    circle.setAttribute('fill', '#0078d4');
+                    nodeG.appendChild(circle);
+                    
+                    const plusText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    plusText.setAttribute('class', 'expand-indicator');
+                    plusText.setAttribute('x', 0);
+                    plusText.setAttribute('y', currentLayout === 'vertical' ? nodeHeight/2 + 15 : 4);
+                    plusText.setAttribute('text-anchor', 'middle');
+                    plusText.setAttribute('fill', 'white');
+                    plusText.textContent = '+';
+                    nodeG.appendChild(plusText);
+                }
+                
+                g.appendChild(nodeG);
+            });
+            
+            exportSvg.appendChild(g);
+            return exportSvg;
         }
 
         function showEmployeeDetail(employee) {
