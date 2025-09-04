@@ -257,8 +257,9 @@ TBC - Will continue to populate if/when anybody has issues
 - Create an 'installer' script which will automatically run through the process of setting up Graph API and/or App Service using Powershell.
 - Import employee photos from Graph API, cached locally, failback to current icon if no image found.
 - Option to export a high quality PDF of the entire collapsed Org Chart.
-- Add statistics box/page which shows headcount trends over time, average team sizes by level, department distribution etc
-- Add 'New hire indicators' (bold/enhanced card that stands out) for those who have joined within the last 3 months
-- Text only view for compact exporting and printing
+- Add statistics box/page which shows headcount trends over time, average team sizes by level, department distribution etc.
+- Add 'New hire indicators' (bold/enhanced card that stands out) for those who have joined within the last 3 months.
+- Text only view for compact exporting and printing.
+- Split out the styling from index.html to keep things compact.
 
 
