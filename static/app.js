@@ -922,7 +922,8 @@ function createExportSVG(exportFullChart = false) {
         nameText.setAttribute('x', 0);
         nameText.setAttribute('y', -20);
         nameText.setAttribute('text-anchor', 'middle');
-        nameText.textContent = d.data.name;
+        const name = d.data.name;
+        nameText.textContent = name.length > 22 ? name.substring(0, 22) + '...' : name;
         nodeG.appendChild(nameText);
         
         // Title
@@ -931,7 +932,8 @@ function createExportSVG(exportFullChart = false) {
         titleText.setAttribute('x', 0);
         titleText.setAttribute('y', -5);
         titleText.setAttribute('text-anchor', 'middle');
-        titleText.textContent = d.data.title;
+        const title = d.data.title;
+        titleText.textContent = title.length > 28 ? title.substring(0, 28) + '...' : title;
         nodeG.appendChild(titleText);
         
         // Department
@@ -941,7 +943,8 @@ function createExportSVG(exportFullChart = false) {
             deptText.setAttribute('x', 0);
             deptText.setAttribute('y', 25);
             deptText.setAttribute('text-anchor', 'middle');
-            deptText.textContent = d.data.department;
+            const dept = d.data.department || 'Not specified';
+            deptText.textContent = dept.length > 28 ? dept.substring(0, 28) + '...' : dept;
             nodeG.appendChild(deptText);
         }
         
