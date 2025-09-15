@@ -1,4 +1,7 @@
 ## What is DB-AutoOrgChart?
+
+A demo of DBAutoOrgChart is available here (with fictitious data): https://org.d4nny.co.uk/
+
 DB-AutoOrgChart is an application which connects to your Azure AD/Entra via Graph API, retrieves the appropriate information (employee name, title, department, 'reports to' etc.) then builds an interactive Organisation Chart based upon that information. It can be run as an App Service in Azure / Google Cloud etc or you can run it locally. NOTE: You will need the appropriate permissions in Azure to set up Graph API which is a requirement for this application to function. You only need to do this once, so someone with those permissions can set it up for you then provide the environment variables to you.
 
 In short, these are the main features of DB-AutoOrgChart:
