@@ -482,10 +482,12 @@ body {
 .expand-btn {
     fill: #0078d4;
     cursor: pointer;
+    transform: translateY(-5px);
 }
 
 .expand-btn:hover {
     fill: #0b559f;
+    transform: translateY(-5px);
 }
 
 .expand-text {
@@ -493,6 +495,7 @@ body {
     font-size: 14px;
     font-weight: bold;
     pointer-events: none;
+    transform: translateY(-5px);
 }
 
 .count-badge {

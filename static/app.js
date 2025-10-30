@@ -67,13 +67,11 @@ function convertTo12Hour(time24) {
 function setLayoutOrientation(orientation) {
     currentLayout = orientation;
     
-    // Update button states
     document.querySelectorAll('.layout-btn').forEach(btn => {
         btn.classList.remove('active');
     });
     event.target.closest('.layout-btn').classList.add('active');
     
-    // Re-render the chart with new orientation
     if (root) {
         update(root);
         fitToScreen();
@@ -173,7 +171,6 @@ function update(source) {
     const nodes = treeData.descendants();
     const links = treeData.links();
 
-    // Swap x and y coordinates for horizontal layout
     if (currentLayout === 'horizontal') {
         nodes.forEach(d => {
             const temp = d.x;
@@ -724,7 +721,6 @@ function exportToImage(format = 'svg', exportFullChart = false) {
     const svgString = new XMLSerializer().serializeToString(svgElement);
     
     if (format === 'svg') {
-        // Export as SVG
         const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
         const url = URL.createObjectURL(svgBlob);
         const a = document.createElement('a');
@@ -735,28 +731,23 @@ function exportToImage(format = 'svg', exportFullChart = false) {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     } else if (format === 'png') {
-        // Convert to PNG
         const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
         const url = URL.createObjectURL(svgBlob);
         const img = new Image();
         
         img.onload = function() {
-            // Create high-res canvas (2x for better quality)
             const scale = 2;
             const canvas = document.createElement('canvas');
             canvas.width = img.width * scale;
             canvas.height = img.height * scale;
             const ctx = canvas.getContext('2d');
             
-            // White background
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Scale and draw
             ctx.scale(scale, scale);
             ctx.drawImage(img, 0, 0);
             
-            // Download PNG
             canvas.toBlob(function(blob) {
                 const pngUrl = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -779,7 +770,6 @@ function createExportSVG(exportFullChart = false) {
     let nodesToExport, linksToExport;
     
     if (exportFullChart) {
-        // Original behavior - expand all and export everything
         const originalChildren = {};
         const saveAndExpand = (node) => {
             if (node._children) {
@@ -793,7 +783,6 @@ function createExportSVG(exportFullChart = false) {
         };
         saveAndExpand(root);
         
-        // Recalculate layout
         const treeLayout = d3.tree()
             .nodeSize(currentLayout === 'vertical' 
                 ? [nodeWidth + 20, levelHeight] 
@@ -803,7 +792,6 @@ function createExportSVG(exportFullChart = false) {
         nodesToExport = treeData.descendants();
         linksToExport = treeData.links();
         
-        // Restore state after getting data
         const restoreState = (node) => {
             if (originalChildren[node.data.id]) {
                 node._children = node.children;
@@ -816,7 +804,6 @@ function createExportSVG(exportFullChart = false) {
         restoreState(root);
         update(root);
     } else {
-        // Export only visible nodes
         const treeLayout = d3.tree()
             .nodeSize(currentLayout === 'vertical' 
                 ? [nodeWidth + 20, levelHeight] 
@@ -827,7 +814,6 @@ function createExportSVG(exportFullChart = false) {
         linksToExport = treeData.links();
     }
     
-    // Swap for horizontal layout
     if (currentLayout === 'horizontal') {
         nodesToExport.forEach(d => {
             const temp = d.x;
@@ -836,7 +822,6 @@ function createExportSVG(exportFullChart = false) {
         });
     }
     
-    // Calculate bounds
     const padding = 50;
     const minX = d3.min(nodesToExport, d => d.x) - nodeWidth/2 - padding;
     const maxX = d3.max(nodesToExport, d => d.x) + nodeWidth/2 + padding;
@@ -846,14 +831,12 @@ function createExportSVG(exportFullChart = false) {
     const width = maxX - minX;
     const height = maxY - minY;
     
-    // Create SVG
     const exportSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     exportSvg.setAttribute('width', width);
     exportSvg.setAttribute('height', height);
     exportSvg.setAttribute('viewBox', `${minX} ${minY} ${width} ${height}`);
     exportSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
     
-    // White background
     const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     bg.setAttribute('x', minX);
     bg.setAttribute('y', minY);
@@ -862,7 +845,6 @@ function createExportSVG(exportFullChart = false) {
     bg.setAttribute('fill', 'white');
     exportSvg.appendChild(bg);
     
-    // Add styles
     const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
     const style = document.createElementNS('http://www.w3.org/2000/svg', 'style');
     style.textContent = `
@@ -878,7 +860,6 @@ function createExportSVG(exportFullChart = false) {
     
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     
-    // Draw links
     linksToExport.forEach(link => {
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.setAttribute('class', 'link');
@@ -886,12 +867,10 @@ function createExportSVG(exportFullChart = false) {
         g.appendChild(path);
     });
     
-    // Draw nodes
     nodesToExport.forEach(d => {
         const nodeG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         nodeG.setAttribute('transform', `translate(${d.x}, ${d.y})`);
         
-        // Rectangle
         const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         rect.setAttribute('x', -nodeWidth/2);
         rect.setAttribute('y', -nodeHeight/2);
