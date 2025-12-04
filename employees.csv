@@ -1,0 +1,21 @@
+id,name,title,department,email,phone,location,managerId
+1,Alex Rivera,Chief Executive Officer,Executive,alex.rivera@acme-corp.com,(555) 123-4567,Headquarters,
+2,Jordan Lee,Vice President Finance,Finance,jordan.lee@acme-corp.com,(555) 234-5678,Headquarters,1
+3,Taylor Kim,Vice President Design,Design,taylor.kim@acme-corp.com,(555) 345-6789,Remote,1
+4,Morgan Patel,Vice President Operations,Operations,morgan.patel@acme-corp.com,(555) 456-7890,Branch Office,1
+5,Casey Nguyen,Finance Director,Finance,casey.nguyen@acme-corp.com,(555) 567-8901,Headquarters,2
+6,Riley Thompson,Accountant,Finance,riley.thompson@acme-corp.com,(555) 678-9012,Remote,5
+7,Quinn Morales,Financial Analyst,Finance,quinn.morales@acme-corp.com,(555) 789-0123,Headquarters,5
+8,Skylar Brooks,Senior Designer,Design,skylar.brooks@acme-corp.com,(555) 890-1234,Remote,3
+9,Logan Chen,UI/UX Designer,Design,logan.chen@acme-corp.com,(555) 901-2345,Branch Office,8
+10,Avery Singh,Graphic Designer,Design,avery.singh@acme-corp.com,(555) 012-3456,Remote,8
+11,Harper Garcia,Operations Manager,Operations,harper.garcia@acme-corp.com,(555) 123-4568,Headquarters,4
+12,Elliot Ramirez,Logistics Coordinator,Operations,elliot.ramirez@acme-corp.com,(555) 234-5679,Branch Office,11
+13,Finley Torres,Supply Chain Analyst,Operations,finley.torres@acme-corp.com,(555) 345-6790,Remote,11
+14,Rowan Lopez,HR Specialist,Operations,rowan.lopez@acme-corp.com,(555) 456-7901,Headquarters,4
+15,Blake Martinez,IT Support Technician,Operations,blake.martinez@acme-corp.com,(555) 567-9012,Branch Office,14
+16,Dakota Hernandez,Data Analyst,Finance,dakota.hernandez@acme-corp.com,(555) 678-9123,Headquarters,2
+17,Emerson Diaz,Marketing Coordinator,Design,emerson.diaz@acme-corp.com,(555) 789-1234,Remote,3
+18,Reese Wilson,Project Coordinator,Operations,reese.wilson@acme-corp.com,(555) 890-2345,Branch Office,11
+19,Charlie Anderson,Junior Accountant,Finance,charlie.anderson@acme-corp.com,(555) 901-3456,Headquarters,6
+20,Frankie Taylor,Admin Assistant,Executive,frankie.taylor@acme-corp.com,(555) 012-4567,Remote,1

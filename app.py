@@ -724,12 +724,22 @@ def force_update():
             'traceback': traceback.format_exc()
         }), 500
 
+OFFLINE_MODE = os.environ.get('OFFLINE_MODE') == 'true'
+
 if __name__ != '__main__':
-    start_scheduler()
+    if not OFFLINE_MODE:
+        start_scheduler()
+    else:
+        logger.info("OFFLINE_MODE enabled: Scheduler and auto-updates disabled.")
 
 if __name__ == '__main__':
-    start_scheduler()
+    if not OFFLINE_MODE:
+        start_scheduler()
+    else:
+        logger.info("OFFLINE_MODE enabled: Scheduler and auto-updates disabled.")
+    
     try:
         app.run(debug=True, host='0.0.0.0', port=8080)
     finally:
-        stop_scheduler()
+        if not OFFLINE_MODE:
+            stop_scheduler()
